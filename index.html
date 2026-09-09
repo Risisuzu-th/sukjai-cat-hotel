@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&family=Kanit:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <style>
   :root {
     --primary: #7A4A17;
@@ -555,7 +555,7 @@ function renderCustomer() {
       '<label>ชื่อเจ้าของ</label>' +
       '<input type="text" id="inOwner" placeholder="เช่น คุณมิ้น" value="' + state.ownerName + '" oninput="state.ownerName=this.value">' +
       '<label>เบอร์โทร</label>' +
-      '<input type="tel" id="inPhone" placeholder="08X-XXX-XXXX" value="' + state.ownerPhone + '" oninput="state.ownerPhone=this.value; render();">' +
+      '<input type="tel" id="inPhone" placeholder="08X-XXX-XXXX" value="' + state.ownerPhone + '" oninput="state.ownerPhone=this.value" onblur="render()">' +
       (existingCustomer ? '<div class="points-badge">🎉 ยินดีต้อนรับกลับ ' + existingCustomer.ownerName + ' — สะสมแล้ว ' + (existingCustomer.points || 0) + ' แต้ม</div>' : '') +
       '<label>ชื่อแมว</label>' +
       '<input type="text" id="inPet" placeholder="เช่น น้องส้ม" value="' + state.petName + '" oninput="state.petName=this.value">' +
@@ -1161,7 +1161,7 @@ function staffPetsHtml() {
   );
   let html = '<div class="card">' +
     '<div class="card-title">ค้นหาลูกค้า / น้องแมว</div>' +
-    '<input type="text" placeholder="ค้นหาชื่อแมว ชื่อเจ้าของ หรือเบอร์โทร" value="' + state.petSearch + '" oninput="state.petSearch=this.value; render();">' +
+    '<input type="text" placeholder="ค้นหาชื่อแมว ชื่อเจ้าของ หรือเบอร์โทร" value="' + state.petSearch + '" oninput="state.petSearch=this.value; debouncedRender();">' +
   '</div>';
   if (filtered.length === 0) html += '<div class="empty-state">ไม่พบข้อมูล</div>';
   else filtered.forEach(p => {
@@ -1380,6 +1380,12 @@ async function loadReport() {
   const res = await api('getReport', { pin: state.pin });
   state.report = res && !res.error ? res : { totalBookings:0, activeNow:0, zoneCounts:{}, referralBookings:0, totalCustomers:0, topCustomers:[] };
   render();
+}
+
+let renderDebounceTimer = null;
+function debouncedRender() {
+  clearTimeout(renderDebounceTimer);
+  renderDebounceTimer = setTimeout(render, 350);
 }
 
 function render() {

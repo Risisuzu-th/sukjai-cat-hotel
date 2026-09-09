@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sukjai Cat Hotel - ระบบจองห้องพัก</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Noto Sans Thai", "Sarabun", sans-serif;
+    background: #FBF6EC;
+    color: #3A2E1F;
+    padding-bottom: 40px;
+  }
+  .header { background: #F3E4C8; padding: 28px 20px 22px 20px; text-align: center; border-bottom: 2px solid #E4CFA0; position: relative; }
+  .header .brand { font-size: 22px; font-weight: bold; color: #4A3319; }
+  .header .sub { font-size: 12px; color: #A67C3D; margin-top: 4px; letter-spacing: 1px; }
+  .staff-badge { position:absolute; top:14px; right:16px; font-size:11px; background:#7A4A17; color:#fff; padding:5px 12px; border-radius:14px; font-weight:bold; cursor:pointer; }
+
+  .wrap { max-width: 480px; margin: 20px auto 0 auto; padding: 0 16px; }
+
+  .card { background:#fff; border-radius:14px; border:1px solid #E9DFC7; padding:18px; margin-bottom:16px; }
+  .card-title { font-size:15px; font-weight:bold; color:#4A3319; margin-bottom:12px; }
+
+  label { display:block; font-size:12px; color:#8A7454; margin-bottom:6px; margin-top:12px; }
+  label:first-child { margin-top:0; }
+  input[type=date], input[type=text], input[type=tel], input[type=password] {
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid #E4D6B8;
+    font-size:14px; background:#FBF6EC; color:#3A2E1F;
+  }
+  input[type=file] { font-size:12px; margin-top:2px; }
+  input:focus { outline:none; border-color:#D9A441; }
+
+  .zone-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .zone-card { border-radius:12px; padding:14px; cursor:pointer; border:2px solid transparent; }
+  .zone-card.selected { border-color:#4A3319; }
+  .zone-card .zt { font-weight:bold; font-size:14px; }
+  .zone-card .zs { font-size:11px; margin-top:2px; }
+  .zone-card .zc { font-size:10.5px; margin-top:8px; opacity:0.8; }
+  .z-sunny { background:#FBEACB; color:#6B4A15; }
+  .z-cozy  { background:#FBEAF0; color:#7A2E4B; }
+  .z-cloud { background:#E6F1FB; color:#1D4E80; }
+  .z-sig   { background:#F1ECFB; color:#4A3E8C; }
+
+  .level-toggle { display:flex; gap:8px; margin-bottom:14px; }
+  .level-btn { flex:1; padding:8px; border-radius:8px; border:1px solid #E4D6B8; background:#fff; color:#8A7454; font-size:13px; font-weight:bold; cursor:pointer; text-align:center; }
+  .level-btn.active { background:#F3E4C8; border-color:#D9A441; color:#7A4A17; }
+
+  .room-grid { display:grid; grid-template-columns: repeat(4,1fr); gap:8px; }
+  .room-tile { aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer; border:2px solid transparent; text-align:center; }
+  .room-open { background:#FBEACB; color:#6B4A15; }
+  .room-open.selected { border-color:#4A3319; }
+  .room-taken { background:#EFEAE0; color:#B7AC96; cursor:not-allowed; }
+  .room-closed { background:#F7E3E3; color:#A34C4C; cursor:not-allowed; font-size:10px; }
+
+  .btn { width:100%; padding:13px; border-radius:10px; border:none; font-size:15px; font-weight:bold; cursor:pointer; text-align:center; }
+  .btn-primary { background:#7A4A17; color:#fff; }
+  .btn-primary:disabled { background:#D9C39A; cursor:not-allowed; }
+  .btn-ghost { background:#fff; border:1.5px solid #E4D6B8; color:#7A4A17; margin-top:8px; }
+  .btn-small { width:auto; padding:8px 14px; font-size:12px; border-radius:8px; }
+
+  .summary-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #E4D6B8; font-size:13px; color:#5B4222; }
+  .summary-row:last-child { border:none; font-weight:bold; color:#4A3319; padding-top:12px; font-size:14px; }
+
+  .confirm-box { text-align:center; padding: 30px 10px; }
+  .confirm-box .ci { font-size:44px; }
+  .confirm-box .ct { font-size:18px; font-weight:bold; color:#4A3319; margin-top:10px; }
+  .confirm-box .cs { font-size:13px; color:#8A7454; margin-top:6px; }
+  .confirm-box .code { font-size:20px; font-weight:bold; color:#7A4A17; margin-top:16px; letter-spacing:2px; background:#F7F1E4; display:inline-block; padding:8px 20px; border-radius:10px; }
+
+  .error-text { color:#B7523F; font-size:12px; margin-top:8px; }
+  .points-badge { background:#E6F1FB; border-radius:10px; padding:10px 12px; font-size:12px; color:#1D4E80; margin-top:10px; }
+  .photo-preview { width:70px; height:70px; border-radius:10px; object-fit:cover; margin-top:8px; border:1px solid #E4D6B8; }
+
+  .staff-tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .staff-tab-btn { flex:1; min-width:80px; padding:9px; border-radius:10px; border:1.5px solid #E4D6B8; background:#fff; color:#8A7454; font-size:12px; font-weight:bold; cursor:pointer; }
+  .staff-tab-btn.active { background:#7A4A17; color:#fff; border-color:#7A4A17; }
+
+  .stat-row { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .stat-card { flex:1; min-width:100px; background:#fff; border:1px solid #E9DFC7; border-radius:12px; padding:12px; text-align:center; }
+  .stat-card .sv { font-size:20px; font-weight:bold; color:#4A3319; }
+  .stat-card .sl { font-size:10.5px; color:#8A7454; margin-top:2px; }
+
+  .booking-item { background:#fff; border:1px solid #E9DFC7; border-radius:12px; padding:14px; margin-bottom:10px; display:flex; gap:12px; }
+  .booking-item .bi-photo { width:52px; height:52px; border-radius:10px; object-fit:cover; flex-shrink:0; background:#F1EAD8; }
+  .booking-item .bi-body { flex:1; min-width:0; }
+  .booking-item .bi-top { display:flex; justify-content:space-between; align-items:center; }
+  .booking-item .bn { font-size:14px; font-weight:bold; color:#4A3319; }
+  .booking-item .bd { font-size:12px; color:#8A7454; margin-top:4px; }
+  .status-pill { font-size:10.5px; padding:3px 10px; border-radius:12px; font-weight:bold; flex-shrink:0; }
+  .pill-active { background:#E0F0E0; color:#3B7A3B; }
+  .pill-done { background:#F1EAD8; color:#8A7454; }
+  .bi-actions { display:flex; gap:8px; margin-top:10px; }
+  .bi-actions button { flex:1; padding:8px; border-radius:8px; border:1px solid #E4D6B8; background:#fff; font-size:12px; font-weight:bold; color:#7A4A17; cursor:pointer; }
+  .bi-actions button.danger { color:#B7523F; }
+
+  .room-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #F1E9D5; }
+  .room-row:last-child { border:none; }
+  .room-row .rn { font-size:13px; font-weight:bold; color:#4A3319; }
+  .room-row .rz { font-size:10.5px; color:#8A7454; }
+  .room-row-right { display:flex; align-items:center; gap:8px; }
+
+  .rank-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #F1E9D5; font-size:12.5px; }
+  .rank-row:last-child { border:none; }
+
+  .empty-state { text-align:center; padding: 30px 10px; color:#8A7454; font-size:13px; }
+  .refresh-note { text-align:center; font-size:11px; color:#A08A5F; margin-top:14px; }
+  .loading { text-align:center; padding:30px; color:#8A7454; font-size:13px; }
+
+  .footer-link { text-align:center; margin-top: 30px; }
+  .footer-link a { font-size:11px; color:#C2AE86; text-decoration:none; }
+
+  .login-box { max-width:340px; margin: 60px auto 0 auto; padding: 0 16px; }
+
+  .setup-banner { background:#F7E3E3; color:#A34C4C; font-size:12px; padding:12px 16px; text-align:center; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">🐾 โรงแรมแมวสุขใจ</div>
+  <div class="sub">SUKJAI CAT HOTEL · ระบบจองห้องพักออนไลน์</div>
+  <div id="staffBadge"></div>
+</div>
+<div id="setupBanner"></div>
+<div id="appRoot"></div>
+
+<script>
+/* ====== CONFIGURE THIS AFTER DEPLOYING THE APPS SCRIPT WEB APP ====== */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzeU3VgCEmCtqBgezP7gNwoiI7gwRPTr2hMn0yUiqDhIzgHtEAv6lNGAKPIkPHAD-8fyg/exec';
+/* ===================================================================== */
+
+const ZONES = {
+  sunny: { name: 'Sunny Room', desc: 'สดใส อบอุ่น ขี้เล่น', cls: 'z-sunny',
+    rooms: { STD: ['SS1','SS2','SS3','SS4','SS5','SS6','SS7','SS8','SS9'], VIP: ['SSV1','SSV2','SSV3'] } },
+  cozy: { name: 'Cozy Room', desc: 'เงียบ อบอุ่น ปลอดภัย', cls: 'z-cozy',
+    rooms: { STD: ['SC1','SC2','SC3','SC4','SC5','SC6','SC7','SC8','SC9','SC10','SC11'], VIP: ['SCV1','SCV2'] } },
+  cloud: { name: 'Cloud Room', desc: 'พรีเมียม สงบ ลอยฟ้า', cls: 'z-cloud',
+    rooms: { STD: ['SCL1','SCL2','SCL3','SCL4','SCL5','SCL6','SCL7','SCL8','SCL9','SCL10','SCL11','SCL12','SCL13','SCL14','SCL15','SCL16'], VIP: ['SCP1','SCP2','SCP3','SCP4','SCP5','SCP6','SCP7','SCP8'] } },
+  signature: { name: 'Signature Room', desc: 'ห้องใหญ่ที่สุด เอ็กซ์คลูซีฟ', cls: 'z-sig',
+    rooms: { VIP: ['SSR1'] } }
+};
+const ALL_ROOM_IDS = Object.values(ZONES).flatMap(z => Object.values(z.rooms).flat());
+
+let state = {
+  view: 'customer', role: null, pin: '',
+  loginPin: '', loginError: '',
+  staffTab: 'bookings',
+  step: 1,
+  checkin: '', checkout: '',
+  zone: null, level: null, room: null,
+  ownerName: '', ownerPhone: '', petName: '', petPhoto: null, referralCodeUsed: '',
+  lastBookingCode: null,
+  bookings: [], roomStatus: {}, customers: [],
+  report: null,
+  settingsMsg: '',
+  loading: true, apiError: ''
+};
+
+/* ---------- API ---------- */
+async function api(action, payload) {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR') === 0) {
+    state.apiError = 'ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL ในไฟล์นี้';
+    return { error: state.apiError };
+  }
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+    });
+    return await res.json();
+  } catch (err) {
+    return { error: 'เชื่อมต่อระบบไม่ได้: ' + err.message };
+  }
+}
+
+async function loadAll() {
+  const data = await api('getData');
+  if (data && !data.error) {
+    state.bookings = data.bookings || [];
+    state.roomStatus = data.roomStatus || {};
+    state.customers = data.customers || [];
+  }
+  state.loading = false;
+}
+
+function datesOverlap(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && bStart < aEnd; }
+function isRoomClosed(roomId) { return !!(state.roomStatus[roomId] && state.roomStatus[roomId].closed); }
+function isRoomAvailable(roomId, checkin, checkout) {
+  if (isRoomClosed(roomId)) return false;
+  if (!checkin || !checkout) return true;
+  return !state.bookings.some(b =>
+    b.roomId === roomId && b.status === 'active' &&
+    datesOverlap(checkin, checkout, b.checkin, b.checkout)
+  );
+}
+function z_name(key) { return ZONES[key] ? ZONES[key].name : ''; }
+
+/* ---------- navigation ---------- */
+function openStaffLogin() { state.view = 'staff-login'; state.loginPin=''; state.loginError=''; render(); }
+function backToCustomer() { state.view = 'customer'; render(); }
+
+async function attemptLogin() {
+  state.loginError = '';
+  render();
+  const res = await api('login', { pin: state.loginPin.trim() });
+  if (res && res.role) {
+    state.role = res.role; state.pin = state.loginPin.trim();
+    state.view = 'staff'; state.staffTab = 'bookings';
+  } else {
+    state.loginError = (res && res.error) || 'รหัสไม่ถูกต้อง';
+  }
+  render();
+}
+function logoutStaff() { state.role = null; state.pin=''; state.view = 'customer'; render(); }
+
+/* ---------- customer booking ---------- */
+function resetBookingForm() {
+  state.step = 1; state.checkin=''; state.checkout='';
+  state.zone=null; state.level=null; state.room=null;
+  state.ownerName=''; state.ownerPhone=''; state.petName=''; state.petPhoto=null; state.referralCodeUsed='';
+  state.lastBookingCode = null;
+}
+
+function handlePhotoUpload(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const maxDim = 320;
+      let w = img.width, h = img.height;
+      if (w > h && w > maxDim) { h = h * (maxDim / w); w = maxDim; }
+      else if (h > maxDim) { w = w * (maxDim / h); h = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      state.petPhoto = canvas.toDataURL('image/jpeg', 0.6);
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function findCustomerByPhone(phone) {
+  return state.customers.find(c => c.phone === phone);
+}
+
+function renderCustomer() {
+  const el = document.getElementById('appRoot');
+  if (state.loading) { el.innerHTML = '<div class="wrap"><div class="loading">กำลังโหลดข้อมูล...</div></div>'; return; }
+
+  if (state.step === 5) {
+    el.innerHTML = `<div class="wrap">
+      <div class="card confirm-box">
+        <div class="ci">✅</div>
+        <div class="ct">จองสำเร็จ</div>
+        <div class="cs">${ZONES[state.zone].name} · ห้อง ${state.room}<br>${state.checkin} ถึง ${state.checkout}</div>
+        <div class="code">${state.lastBookingCode}</div>
+        <button class="btn btn-primary" style="margin-top:20px;" onclick="resetBookingForm(); render();">จองห้องใหม่</button>
+      </div>
+      ${footerLink()}
+    </div>`;
+    return;
+  }
+
+  let html = '<div class="wrap">';
+
+  html += `<div class="card">
+    <div class="card-title">1. เลือกวันที่</div>
+    <label>วันเช็คอิน</label>
+    <input type="date" id="inCheckin" value="${state.checkin}" onchange="onDateChange()">
+    <label>วันเช็คเอาท์</label>
+    <input type="date" id="inCheckout" value="${state.checkout}" onchange="onDateChange()">
+    <div id="dateError" class="error-text"></div>
+  </div>`;
+
+  if (state.checkin && state.checkout && state.checkin < state.checkout) {
+    html += `<div class="card"><div class="card-title">2. เลือกโซนที่พัก</div><div class="zone-grid">`;
+    for (const [key, z] of Object.entries(ZONES)) {
+      const sel = state.zone === key ? 'selected' : '';
+      const totalRooms = Object.values(z.rooms).flat().length;
+      const availCount = Object.values(z.rooms).flat().filter(r => isRoomAvailable(r, state.checkin, state.checkout)).length;
+      html += `<div class="zone-card ${z.cls} ${sel}" onclick="selectZone('${key}')">
+        <div class="zt">${z.name}</div><div class="zs">${z.desc}</div>
+        <div class="zc">ว่าง ${availCount}/${totalRooms} ห้อง</div></div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  if (state.zone) {
+    const z = ZONES[state.zone];
+    const levels = Object.keys(z.rooms);
+    if (!state.level) state.level = levels[0];
+    html += `<div class="card"><div class="card-title">3. เลือกห้อง — ${z.name}</div>`;
+    if (levels.length > 1) {
+      html += `<div class="level-toggle">`;
+      for (const lv of levels) html += `<div class="level-btn ${state.level===lv?'active':''}" onclick="selectLevel('${lv}')">${lv}</div>`;
+      html += `</div>`;
+    }
+    html += `<div class="room-grid">`;
+    for (const r of z.rooms[state.level]) {
+      if (isRoomClosed(r)) { html += `<div class="room-tile room-closed">${r}<br>ปิดปรับปรุง</div>`; continue; }
+      const avail = isRoomAvailable(r, state.checkin, state.checkout);
+      const sel = state.room===r?'selected':'';
+      html += `<div class="room-tile ${avail?'room-open '+sel:'room-taken'}" onclick="${avail?`selectRoom('${r}')`:''}">${r}</div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  if (state.room) {
+    const existingCustomer = state.ownerPhone.length >= 9 ? findCustomerByPhone(state.ownerPhone) : null;
+    html += `<div class="card">
+      <div class="card-title">4. ข้อมูลเจ้าของ &amp; น้องแมว</div>
+      <label>ชื่อเจ้าของ</label>
+      <input type="text" id="inOwner" placeholder="เช่น คุณมิ้น" value="${state.ownerName}" oninput="state.ownerName=this.value">
+      <label>เบอร์โทร</label>
+      <input type="tel" id="inPhone" placeholder="08X-XXX-XXXX" value="${state.ownerPhone}" oninput="state.ownerPhone=this.value; render();">
+      ${existingCustomer ? `<div class="points-badge">🎉 ยินดีต้อนรับกลับ ${existingCustomer.ownerName} — สะสมแล้ว ${existingCustomer.points || 0} แต้ม</div>` : ''}
+      <label>ชื่อแมว</label>
+      <input type="text" id="inPet" placeholder="เช่น น้องส้ม" value="${state.petName}" oninput="state.petName=this.value">
+      <label>รูปน้องแมว (ถ้ามี — เก็บไว้เป็นประวัติใน Google Drive)</label>
+      <input type="file" accept="image/*" onchange="handlePhotoUpload(event)">
+      ${state.petPhoto ? `<img class="photo-preview" src="${state.petPhoto}">` : ''}
+      <label>โค้ดชวนเพื่อน (ถ้ามี)</label>
+      <input type="text" id="inReferral" placeholder="เช่น REFAB12" value="${state.referralCodeUsed}" oninput="state.referralCodeUsed=this.value">
+    </div>`;
+
+    html += `<div class="card">
+      <div class="card-title">สรุปการจอง</div>
+      <div class="summary-row"><span>ห้องพัก</span><span>${z_name(state.zone)} · ${state.room}</span></div>
+      <div class="summary-row"><span>วันที่</span><span>${state.checkin} - ${state.checkout}</span></div>
+      <div class="summary-row"><span>เจ้าของ / แมว</span><span>${state.ownerName || '-'} / ${state.petName || '-'}</span></div>
+    </div>`;
+
+    html += `<button class="btn btn-primary" id="submitBtn" onclick="submitBooking()">ยืนยันการจอง</button>
+      <div id="formError" class="error-text"></div>`;
+  }
+
+  html += footerLink() + '</div>';
+  el.innerHTML = html;
+}
+
+function footerLink() {
+  return `<div class="footer-link"><a href="#" onclick="openStaffLogin(); return false;">สำหรับเจ้าหน้าที่</a></div>`;
+}
+
+function onDateChange() {
+  state.checkin = document.getElementById('inCheckin').value;
+  state.checkout = document.getElementById('inCheckout').value;
+  const errEl = document.getElementById('dateError');
+  if (state.checkin && state.checkout && state.checkin >= state.checkout) {
+    errEl.textContent = 'วันเช็คเอาท์ต้องอยู่หลังวันเช็คอิน';
+  } else { errEl.textContent = ''; state.room = null; }
+  render();
+}
+function selectZone(key) { state.zone=key; state.level=null; state.room=null; render(); }
+function selectLevel(lv) { state.level=lv; state.room=null; render(); }
+function selectRoom(r) { state.room=r; render(); }
+
+async function submitBooking() {
+  const errEl = document.getElementById('formError');
+  if (!state.ownerName.trim() || !state.ownerPhone.trim() || !state.petName.trim()) {
+    errEl.textContent = 'กรุณากรอกข้อมูลเจ้าของและน้องแมวให้ครบ'; return;
+  }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  const res = await api('createBooking', {
+    zone: state.zone, roomId: state.room, checkin: state.checkin, checkout: state.checkout,
+    ownerName: state.ownerName.trim(), ownerPhone: state.ownerPhone.trim(), petName: state.petName.trim(),
+    photoBase64: state.petPhoto, referralCodeUsed: state.referralCodeUsed.trim()
+  });
+
+  if (res && res.id) {
+    state.lastBookingCode = res.id;
+    state.step = 5;
+    await loadAll();
+  } else {
+    errEl.textContent = (res && res.error) || 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+    btn.disabled = false; btn.textContent = 'ยืนยันการจอง';
+  }
+  render();
+}
+
+/* ---------- staff login ---------- */
+function renderStaffLogin() {
+  const el = document.getElementById('appRoot');
+  el.innerHTML = `<div class="login-box"><div class="card">
+    <div class="card-title">เข้าสู่ระบบเจ้าหน้าที่</div>
+    <label>รหัสผ่าน</label>
+    <input type="password" id="inPin" placeholder="กรอกรหัสแอดมิน หรือ ผู้ดูแลระบบ" value="${state.loginPin}"
+      oninput="state.loginPin=this.value" onkeydown="if(event.key==='Enter') attemptLogin();">
+    <div class="error-text">${state.loginError}</div>
+    <button class="btn btn-primary" style="margin-top:14px;" onclick="attemptLogin()">เข้าสู่ระบบ</button>
+    <button class="btn btn-ghost" onclick="backToCustomer()">ย้อนกลับ</button>
+  </div></div>`;
+  document.getElementById('inPin').focus();
+}
+
+/* ---------- staff area ---------- */
+function renderStaff() {
+  const el = document.getElementById('appRoot');
+  if (state.loading) { el.innerHTML = '<div class="wrap"><div class="loading">กำลังโหลดข้อมูล...</div></div>'; return; }
+  let html = '<div class="wrap">';
+  html += `<div class="staff-tabs">
+    <div class="staff-tab-btn ${state.staffTab==='bookings'?'active':''}" onclick="setStaffTab('bookings')">การจอง</div>
+    <div class="staff-tab-btn ${state.staffTab==='rooms'?'active':''}" onclick="setStaffTab('rooms')">จัดการห้องพัก</div>
+    <div class="staff-tab-btn ${state.staffTab==='report'?'active':''}" onclick="setStaffTab('report')">รายงาน</div>
+    ${state.role==='superadmin' ? `<div class="staff-tab-btn ${state.staffTab==='settings'?'active':''}" onclick="setStaffTab('settings')">ตั้งค่าระบบ</div>` : ''}
+  </div>`;
+
+  if (state.staffTab === 'bookings') html += staffBookingsHtml();
+  else if (state.staffTab === 'rooms') html += staffRoomsHtml();
+  else if (state.staffTab === 'report') html += staffReportHtml();
+  else if (state.staffTab === 'settings') html += staffSettingsHtml();
+
+  html += `<button class="btn btn-ghost" onclick="logoutStaff()">ออกจากระบบเจ้าหน้าที่</button>`;
+  html += '</div>';
+  el.innerHTML = html;
+  if (state.staffTab === 'report' && !state.report) loadReport();
+}
+
+function setStaffTab(tab) { state.staffTab = tab; render(); }
+
+function staffBookingsHtml() {
+  const active = state.bookings.filter(b => b.status === 'active');
+  const done = state.bookings.filter(b => b.status === 'done');
+  const closedCount = Object.values(state.roomStatus).filter(r => r.closed).length;
+  let html = `<div class="stat-row">
+    <div class="stat-card"><div class="sv">${active.length}</div><div class="sl">กำลังเข้าพัก</div></div>
+    <div class="stat-card"><div class="sv">${ALL_ROOM_IDS.length - active.length - closedCount}</div><div class="sl">ห้องว่าง</div></div>
+    <div class="stat-card"><div class="sv">${closedCount}</div><div class="sl">ปิดปรับปรุง</div></div>
+  </div><div class="card-title" style="margin-bottom:10px;">รายการที่กำลังเข้าพัก</div>`;
+  if (active.length === 0) html += `<div class="empty-state">ยังไม่มีลูกค้าเข้าพัก</div>`;
+  else for (const b of active) html += bookingItemHtml(b);
+  if (done.length > 0) {
+    html += `<div class="card-title" style="margin:20px 0 10px 0;">ประวัติเช็คเอาท์แล้ว</div>`;
+    for (const b of done.slice().reverse()) html += bookingItemHtml(b);
+  }
+  html += `<div class="refresh-note">ข้อมูลบันทึกจริงใน Google Sheets ของโรงแรม</div>
+    <button class="btn btn-ghost" onclick="manualRefresh()">รีเฟรชข้อมูลล่าสุด</button>`;
+  return html;
+}
+
+function bookingItemHtml(b) {
+  const pill = b.status==='active' ? '<span class="status-pill pill-active">เข้าพักอยู่</span>' : '<span class="status-pill pill-done">เช็คเอาท์แล้ว</span>';
+  let actions = '';
+  if (b.status === 'active') {
+    actions = `<div class="bi-actions">
+      <button onclick="checkoutBooking('${b.id}')">เช็คเอาท์</button>
+      <button class="danger" onclick="cancelBooking('${b.id}')">ยกเลิกการจอง</button>
+    </div>`;
+  }
+  const photo = b.petPhotoUrl ? `<img class="bi-photo" src="${b.petPhotoUrl}">` : `<div class="bi-photo"></div>`;
+  return `<div class="booking-item">${photo}<div class="bi-body">
+    <div class="bi-top"><div class="bn">${z_name(b.zone)} · ${b.roomId}</div>${pill}</div>
+    <div class="bd">${b.petName} (${b.ownerName}) · ${b.ownerPhone}</div>
+    <div class="bd">${b.checkin} ถึง ${b.checkout} · รหัส ${b.id}</div>${actions}
+  </div></div>`;
+}
+
+async function checkoutBooking(id) {
+  const res = await api('checkout', { id: id, pin: state.pin });
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  await loadAll(); render();
+}
+async function cancelBooking(id) {
+  const res = await api('cancel', { id: id, pin: state.pin });
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  await loadAll(); render();
+}
+async function manualRefresh() { state.loading = true; render(); await loadAll(); render(); }
+
+function staffRoomsHtml() {
+  let html = `<div class="card"><div class="card-title">สถานะห้องพักทั้งหมด</div>`;
+  for (const [key, z] of Object.entries(ZONES)) {
+    html += `<div style="font-size:12px; font-weight:bold; color:#7A4A17; margin:10px 0 4px 0;">${z.name}</div>`;
+    for (const [lv, rooms] of Object.entries(z.rooms)) {
+      for (const r of rooms) {
+        const closed = isRoomClosed(r);
+        html += `<div class="room-row"><div><div class="rn">${r}</div><div class="rz">${lv}</div></div>
+          <div class="room-row-right">
+            <span class="status-pill ${closed?'pill-done':'pill-active'}">${closed?'ปิดปรับปรุง':'เปิดใช้งาน'}</span>
+            <button class="btn btn-small btn-ghost" style="margin:0;" onclick="toggleRoomClosed('${r}')">${closed?'เปิดใช้งาน':'ปิดปรับปรุง'}</button>
+          </div></div>`;
+      }
+    }
+  }
+  html += `</div>`;
+  return html;
+}
+
+async function toggleRoomClosed(roomId) {
+  const currentlyClosed = isRoomClosed(roomId);
+  let note = '';
+  if (!currentlyClosed) note = prompt('เหตุผลที่ปิดปรับปรุงห้อง ' + roomId + ' (ไม่บังคับ):', '') || 'ปิดปรับปรุง';
+  const res = await api('setRoomStatus', { roomId: roomId, closed: !currentlyClosed, note: note, pin: state.pin });
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  await loadAll(); render();
+}
+
+function staffSettingsHtml() {
+  return `<div class="card">
+    <div class="card-title">ตั้งค่ารหัสผ่านเจ้าหน้าที่</div>
+    <label>รหัสแอดมินใหม่ (เว้นว่างถ้าไม่เปลี่ยน)</label>
+    <input type="text" id="inAdminPin" placeholder="รหัสแอดมินใหม่">
+    <label>รหัสผู้ดูแลระบบใหม่ (เว้นว่างถ้าไม่เปลี่ยน)</label>
+    <input type="text" id="inSuperPin" placeholder="รหัสผู้ดูแลระบบใหม่">
+    <button class="btn btn-primary" style="margin-top:14px;" onclick="saveSettingsPins()">บันทึกรหัสผ่าน</button>
+    <div style="font-size:11px; color:#4C8A4C; margin-top:8px;">${state.settingsMsg}</div>
+    <div style="font-size:11px; color:#A08A5F; margin-top:14px; line-height:1.6;">
+      รหัสผ่านเก็บอยู่ในชีต "Config" ของ Google Sheets ฐานข้อมูล — ควรเปลี่ยนจากค่าเริ่มต้นก่อนใช้งานจริง
+    </div>
+  </div>`;
+}
+
+async function saveSettingsPins() {
+  const newAdmin = document.getElementById('inAdminPin').value.trim();
+  const newSuper = document.getElementById('inSuperPin').value.trim();
+  const res = await api('updatePins', { newAdminPin: newAdmin, newSuperPin: newSuper, currentPin: state.pin });
+  if (res && res.ok) {
+    state.settingsMsg = 'บันทึกรหัสผ่านเรียบร้อย';
+    if (newAdmin) state.pin = state.role === 'admin' ? newAdmin : state.pin;
+    if (newSuper) state.pin = state.role === 'superadmin' ? newSuper : state.pin;
+  } else {
+    state.settingsMsg = '';
+    alert((res && res.error) || 'เกิดข้อผิดพลาด');
+  }
+  render();
+}
+
+function staffReportHtml() {
+  if (!state.report) return `<div class="loading">กำลังโหลดรายงาน...</div>`;
+  const r = state.report;
+  let zoneRows = '';
+  for (const [key, count] of Object.entries(r.zoneCounts || {})) {
+    zoneRows += `<div class="rank-row"><span>${z_name(key)}</span><span>${count} ครั้ง</span></div>`;
+  }
+  let topRows = '';
+  (r.topCustomers || []).forEach((c, i) => {
+    topRows += `<div class="rank-row"><span>${i+1}. ${c.ownerName}</span><span>${c.points || 0} แต้ม</span></div>`;
+  });
+  return `
+    <div class="stat-row">
+      <div class="stat-card"><div class="sv">${r.totalBookings}</div><div class="sl">การจองทั้งหมด</div></div>
+      <div class="stat-card"><div class="sv">${r.activeNow}</div><div class="sl">กำลังเข้าพัก</div></div>
+      <div class="stat-card"><div class="sv">${r.totalCustomers}</div><div class="sl">ลูกค้าทั้งหมด</div></div>
+      <div class="stat-card"><div class="sv">${r.referralBookings}</div><div class="sl">มาจากการชวนเพื่อน</div></div>
+    </div>
+    <div class="card"><div class="card-title">การจองแยกตามโซน</div>${zoneRows || '<div class="empty-state">ยังไม่มีข้อมูล</div>'}</div>
+    <div class="card"><div class="card-title">ลูกค้าแต้มสะสมสูงสุด</div>${topRows || '<div class="empty-state">ยังไม่มีข้อมูล</div>'}</div>
+    <div class="refresh-note">รายงานนี้ยังไม่รวมยอดรายรับ (บาท) — เชื่อมต่อกับตารางราคาที่ลูกค้ากรอกเพื่อคำนวณรายรับได้ในขั้นถัดไป</div>`;
+}
+
+async function loadReport() {
+  const res = await api('getReport', { pin: state.pin });
+  state.report = res && !res.error ? res : { totalBookings:0, activeNow:0, zoneCounts:{}, referralBookings:0, totalCustomers:0, topCustomers:[] };
+  render();
+}
+
+/* ---------- root render ---------- */
+function render() {
+  const badgeEl = document.getElementById('staffBadge');
+  if (state.view === 'staff' && state.role) {
+    badgeEl.innerHTML = `<div class="staff-badge" onclick="logoutStaff()">${state.role==='superadmin'?'ผู้ดูแลระบบ':'แอดมิน'} · ออกจากระบบ</div>`;
+  } else badgeEl.innerHTML = '';
+
+  const banner = document.getElementById('setupBanner');
+  banner.innerHTML = state.apiError ? `<div class="setup-banner">⚠️ ${state.apiError} — โปรดตั้งค่า APPS_SCRIPT_URL ในไฟล์ index.html</div>` : '';
+
+  if (state.view === 'customer') renderCustomer();
+  else if (state.view === 'staff-login') renderStaffLogin();
+  else if (state.view === 'staff') renderStaff();
+}
+
+(async function init() {
+  render();
+  await loadAll();
+  render();
+})();
+</script>
+</body>
+</html>

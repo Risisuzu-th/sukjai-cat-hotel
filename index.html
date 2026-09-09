@@ -266,7 +266,7 @@ function applyTheme(theme) {
   document.documentElement.style.setProperty('--bg', theme.themeBg || '#FBF6EC');
   document.documentElement.style.setProperty('--card', theme.themeCard || '#F3E4C8');
   if (theme.themeBgImage) {
-    document.body.style.setProperty('--bg-image', "url('" + theme.themeBgImage + "')");
+    document.body.style.setProperty('--bg-image', "url('" + driveImg(theme.themeBgImage, 2200) + "')");
     document.body.classList.add('has-bg-image');
   } else {
     document.body.style.setProperty('--bg-image', 'none');
@@ -274,7 +274,7 @@ function applyTheme(theme) {
   }
   const coverEl = document.getElementById('coverBanner');
   if (theme.themeCoverImage) {
-    coverEl.src = theme.themeCoverImage;
+    coverEl.src = driveImg(theme.themeCoverImage, 2200);
     coverEl.style.display = 'block';
   } else {
     coverEl.style.display = 'none';
@@ -292,6 +292,16 @@ function isRoomAvailable(roomId, checkin, checkout) {
   );
 }
 function z_name(key) { return ZONES[key] ? ZONES[key].name : ''; }
+
+// Normalizes any Google Drive image URL (old uc?id= links included) to the
+// thumbnail endpoint, which reliably renders as a raw image in <img> tags.
+// Local data: URLs (photo previews before upload) pass through unchanged.
+function driveImg(url, size) {
+  if (!url) return url;
+  const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!m) return url;
+  return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w' + (size || 1600);
+}
 
 function findPricingRule(roomId, zone, level, checkin) {
   const candidates = state.pricing.filter(r => r.startDate <= checkin && checkin <= r.endDate);
@@ -442,7 +452,7 @@ function renderCustomer() {
       const avail = isRoomAvailable(r, state.checkin, state.checkout);
       const sel = state.room===r?'selected':'';
       const photo = state.roomPhotos[r];
-      const bgStyle = photo ? 'style="background-image:url(\'' + photo + '\');"' : '';
+      const bgStyle = photo ? 'style="background-image:url(\'' + driveImg(photo, 800) + '\');"' : '';
       const labelCls = photo ? 'room-photo-badge' : '';
       html += '<div class="room-tile ' + (avail?'room-open '+sel:'room-taken') + '" ' + bgStyle + ' onclick="' + (avail?'selectRoom(\''+r+'\')':'') + '"><span class="' + labelCls + '">' + r + '</span></div>';
     }
@@ -456,7 +466,7 @@ function renderCustomer() {
 
     html += '<div class="card">' +
       '<div class="card-title">4. ข้อมูลเจ้าของ &amp; น้องแมว</div>' +
-      (roomPhoto ? '<img class="room-photo-preview" src="' + roomPhoto + '">' : '') +
+      (roomPhoto ? '<img class="room-photo-preview" src="' + driveImg(roomPhoto, 1400) + '">' : '') +
       '<label>ชื่อเจ้าของ</label>' +
       '<input type="text" id="inOwner" placeholder="เช่น คุณมิ้น" value="' + state.ownerName + '" oninput="state.ownerName=this.value">' +
       '<label>เบอร์โทร</label>' +
@@ -608,7 +618,7 @@ function bookingItemHtml(b) {
       '<button class="danger" onclick="cancelBooking(\'' + b.id + '\')">ยกเลิกการจอง</button>' +
     '</div>';
   }
-  const photo = b.petPhotoUrl ? '<img class="bi-photo" src="' + b.petPhotoUrl + '">' : '<div class="bi-photo"></div>';
+  const photo = b.petPhotoUrl ? '<img class="bi-photo" src="' + driveImg(b.petPhotoUrl, 300) + '">' : '<div class="bi-photo"></div>';
   return '<div class="booking-item">' + photo + '<div class="bi-body">' +
     '<div class="bi-top"><div class="bn">' + z_name(b.zone) + ' · ' + b.roomId + '</div>' + pill + '</div>' +
     '<div class="bd">' + b.petName + ' (' + b.ownerName + ') · ' + b.ownerPhone + '</div>' +
@@ -641,7 +651,7 @@ function staffRoomsHtml() {
         const photo = state.roomPhotos[r];
         html += '<div class="room-row">' +
           '<div style="display:flex; align-items:center; gap:8px;">' +
-            (photo ? '<img class="room-thumb" src="' + photo + '">' : '<div class="room-thumb" style="background:#F1E9D5;"></div>') +
+            (photo ? '<img class="room-thumb" src="' + driveImg(photo, 200) + '">' : '<div class="room-thumb" style="background:#F1E9D5;"></div>') +
             '<div><div class="rn">' + r + '</div><div class="rz">' + lv + '</div></div>' +
           '</div>' +
           '<div class="room-row-right">' +
@@ -793,7 +803,7 @@ function staffThemeHtml() {
 
   html += '<div class="card">' +
     '<div class="card-title">รูปปก (แถบภาพด้านบนสุดของเว็บ)</div>' +
-    (state.theme.themeCoverImage ? '<img class="bg-preview" src="' + state.theme.themeCoverImage + '">' : '<div class="bg-preview"></div>') +
+    (state.theme.themeCoverImage ? '<img class="bg-preview" src="' + driveImg(state.theme.themeCoverImage, 800) + '">' : '<div class="bg-preview"></div>') +
     '<label class="upload-btn-label" style="display:inline-block;">เลือกรูปปก<input type="file" accept="image/*" onchange="handleCoverUpload(event)"></label>' +
     (state.theme.themeCoverImage ? '<button class="btn btn-ghost" onclick="removeCoverImage()">ลบรูปปก</button>' : '') +
     '<div class="upload-error">' + state.coverMsg + '</div>' +
@@ -802,7 +812,7 @@ function staffThemeHtml() {
 
   html += '<div class="card">' +
     '<div class="card-title">พื้นหลังทั้งเว็บไซต์</div>' +
-    (state.theme.themeBgImage ? '<img class="bg-preview" src="' + state.theme.themeBgImage + '">' : '<div class="bg-preview"></div>') +
+    (state.theme.themeBgImage ? '<img class="bg-preview" src="' + driveImg(state.theme.themeBgImage, 800) + '">' : '<div class="bg-preview"></div>') +
     '<label class="upload-btn-label" style="display:inline-block;">เลือกรูปพื้นหลัง<input type="file" accept="image/*" onchange="handleBgUpload(event)"></label>' +
     (state.theme.themeBgImage ? '<button class="btn btn-ghost" onclick="removeBgImage()">ลบรูปพื้นหลัง (กลับไปใช้สีพื้น)</button>' : '') +
     '<div class="upload-error">' + state.bgMsg + '</div>' +

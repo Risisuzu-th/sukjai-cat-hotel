@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&family=Kanit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root {
     --primary: #7A4A17;
@@ -172,6 +174,46 @@
   .cover-banner { width:100%; max-width:480px; height:150px; object-fit:cover; display:block; margin:0 auto; border-radius: 0 0 20px 20px; }
   .upload-error { color:#B7523F; font-size:11.5px; margin-top:8px; line-height:1.6; }
   .upload-hint { font-size:10.5px; color:#A08A5F; margin-top:6px; }
+
+  .line-login-btn { background:#06C755; color:#fff; }
+  .line-profile-badge { display:flex; align-items:center; gap:10px; background:#EAFBEF; border-radius:12px; padding:10px 12px; margin-bottom:12px; }
+  .line-profile-badge img { width:32px; height:32px; border-radius:50%; }
+  .line-profile-badge .lpn { font-size:12.5px; font-weight:bold; color:#2E7D46; }
+  .line-profile-badge .lps { font-size:10.5px; color:#4C8A5C; }
+
+  .coupon-row { display:flex; gap:8px; }
+  .coupon-row input { flex:1; }
+  .coupon-row button { width:auto; padding:0 16px; }
+  .coupon-applied { background:#E0F0E0; border-radius:10px; padding:10px 12px; font-size:12px; color:#3B7A3B; margin-top:8px; display:flex; justify-content:space-between; align-items:center; }
+  .coupon-remove { font-size:11px; color:#B7523F; cursor:pointer; text-decoration:underline; }
+
+  .qr-box { text-align:center; padding:16px; background:#fff; border-radius:14px; border:1.5px dashed var(--border); margin-top:16px; }
+  .qr-box canvas, .qr-box img { margin:0 auto; }
+  .qr-box .qt { font-size:12.5px; color:#8A7454; margin-top:10px; }
+  .qr-box .qa { font-size:18px; font-weight:bold; color:var(--primary); margin-top:4px; }
+
+  .pet-list-item { display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px; cursor:pointer; }
+  .pet-list-item img, .pet-list-item .plph { width:48px; height:48px; border-radius:10px; object-fit:cover; background:#F1E9D5; flex-shrink:0; }
+  .pet-list-item .pln { font-size:13.5px; font-weight:bold; color:#4A3319; }
+  .pet-list-item .pls { font-size:11px; color:#8A7454; margin-top:2px; }
+
+  .pet-detail-header { display:flex; gap:14px; align-items:center; }
+  .pet-detail-header img, .pet-detail-header .pdph { width:72px; height:72px; border-radius:14px; object-fit:cover; background:#F1E9D5; flex-shrink:0; }
+  .pet-detail-header .pdn { font-size:18px; font-weight:bold; color:#4A3319; font-family:'FC Rooster','Kanit',sans-serif; }
+  .pet-detail-header .pdo { font-size:12px; color:#8A7454; margin-top:2px; }
+
+  .log-item { display:flex; gap:10px; padding:10px 0; border-bottom:1px solid #F1E9D5; }
+  .log-item:last-child { border:none; }
+  .log-tag { font-size:9.5px; padding:2px 8px; border-radius:8px; font-weight:bold; height: fit-content; flex-shrink:0; margin-top:2px; }
+  .log-food { background:#FFE6B8; color:#8A5A15; }
+  .log-note { background:#E6F1FB; color:#1D4E80; }
+  .log-medical { background:#F7E3E3; color:#A34C4C; }
+  .log-text { font-size:12.5px; color:#4A3319; }
+  .log-date { font-size:10px; color:#A08A5F; margin-top:3px; }
+
+  .coupon-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:10px; }
+  .coupon-card .cc-code { font-size:15px; font-weight:bold; color:var(--primary); font-family:'FC Rooster','Kanit',sans-serif; }
+  .coupon-card .cc-detail { font-size:11.5px; color:#8A7454; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -222,12 +264,18 @@ let state = {
   checkin: '', checkout: '',
   zone: null, level: null, room: null,
   ownerName: '', ownerPhone: '', petName: '', petPhoto: null, petPhotoError: '', referralCodeUsed: '',
-  lastBookingCode: null,
+  couponInput: '', couponApplied: null, couponError: '',
+  lineUserId: '', linePictureUrl: '', lineDisplayName: '',
+  lastBookingCode: null, lastFinalTotal: null,
   bookings: [], roomStatus: {}, customers: [], roomPhotos: {}, pricing: [],
   theme: { themeName: 'default', themePrimary: '#7A4A17', themeBg: '#FBF6EC', themeCard: '#F3E4C8', themeBgImage: '' },
+  publicConfig: { promptpayId: '', liffId: '', lineConnected: false },
   report: null,
-  settingsMsg: '', pricingMsg: '', themeMsg: '', bgMsg: '', coverMsg: '',
+  settingsMsg: '', pricingMsg: '', themeMsg: '', bgMsg: '', coverMsg: '', paymentMsg: '', liffMsg: '', lineTokenMsg: '', broadcastMsg: '', broadcastText: '',
   pricingForm: { targetType: 'zone', targetValue: 'sunny', startDate: '', endDate: '', pricePerNight: '', note: '' },
+  couponForm: { code: '', discountType: 'percent', value: '', expiryDate: '', usageLimit: '', note: '' }, couponFormMsg: '',
+  pets: [], petsLoaded: false, selectedPet: null, petSearch: '', petEditMsg: '', newLogType: 'food', newLogText: '',
+  coupons: [], couponsLoaded: false,
   loading: true, apiError: ''
 };
 
@@ -256,9 +304,35 @@ async function loadAll() {
     state.customers = data.customers || [];
     state.roomPhotos = data.roomPhotos || {};
     state.pricing = data.pricing || [];
+    state.publicConfig = data.publicConfig || { promptpayId: '', liffId: '' };
     if (data.theme) { state.theme = data.theme; applyTheme(state.theme); }
   }
   state.loading = false;
+}
+
+async function initLineLogin() {
+  if (!state.publicConfig.liffId) return;
+  try {
+    await liff.init({ liffId: state.publicConfig.liffId });
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      state.lineUserId = profile.userId;
+      state.lineDisplayName = profile.displayName;
+      state.linePictureUrl = profile.pictureUrl || '';
+      const res = await api('lineLogin', { lineUserId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl });
+      if (res && !res.error) {
+        if (!state.ownerName) state.ownerName = res.ownerName || profile.displayName;
+        if (res.phone && !state.ownerPhone) state.ownerPhone = res.phone;
+      }
+      render();
+    }
+  } catch (err) {
+    console.log('LIFF init skipped:', err.message);
+  }
+}
+function lineLoginClick() {
+  if (!state.publicConfig.liffId) { alert('ยังไม่ได้ตั้งค่า LINE Login (LIFF ID) — ผู้ดูแลระบบต้องตั้งค่าในเมนูตั้งค่าระบบก่อน'); return; }
+  if (typeof liff !== 'undefined' && liff.login) liff.login();
 }
 
 function applyTheme(theme) {
@@ -341,8 +415,9 @@ function logoutStaff() { state.role = null; state.pin=''; state.view = 'customer
 function resetBookingForm() {
   state.step = 1; state.checkin=''; state.checkout='';
   state.zone=null; state.level=null; state.room=null;
-  state.ownerName=''; state.ownerPhone=''; state.petName=''; state.petPhoto=null; state.referralCodeUsed='';
-  state.lastBookingCode = null;
+  state.ownerName= state.lineDisplayName || ''; state.ownerPhone=''; state.petName=''; state.petPhoto=null; state.referralCodeUsed='';
+  state.couponInput=''; state.couponApplied=null; state.couponError='';
+  state.lastBookingCode = null; state.lastFinalTotal = null;
 }
 
 const MAX_ORIGINAL_FILE_BYTES = 25 * 1024 * 1024; // 25MB original file cap — generous for modern phone photos
@@ -406,12 +481,22 @@ function renderCustomer() {
         '<div class="ct">จองสำเร็จ</div>' +
         '<div class="cs">' + ZONES[state.zone].name + ' · ห้อง ' + state.room + '<br>' + state.checkin + ' ถึง ' + state.checkout + '</div>' +
         '<div class="code">' + state.lastBookingCode + '</div>' +
+        (state.lastFinalTotal ? '<div class="qr-box"><div id="qrContainer"></div><div class="qt">สแกนจ่ายผ่าน PromptPay</div><div class="qa">' + Number(state.lastFinalTotal).toLocaleString() + ' บาท</div></div>' : '') +
         '<button class="btn btn-primary" style="margin-top:20px;" onclick="resetBookingForm(); render();">' + PAW_ICON + 'จองห้องใหม่</button>' +
       '</div>' + footerLink() + '</div>';
     return;
   }
 
   let html = '<div class="wrap">';
+
+  if (state.lineUserId) {
+    html += '<div class="line-profile-badge">' +
+      (state.linePictureUrl ? '<img src="' + state.linePictureUrl + '">' : '') +
+      '<div><div class="lpn">' + (state.lineDisplayName || 'เชื่อมต่อ LINE แล้ว') + '</div><div class="lps">เข้าสู่ระบบผ่าน LINE</div></div>' +
+    '</div>';
+  } else if (state.publicConfig.liffId) {
+    html += '<button class="btn line-login-btn" onclick="lineLoginClick()" style="margin-bottom:16px;">เข้าสู่ระบบด้วย LINE เพื่อรับสิทธิ์สมาชิก</button>';
+  }
 
   html += '<div class="card">' +
     '<div class="card-title">1. เลือกวันที่</div>' +
@@ -490,9 +575,24 @@ function renderCustomer() {
       '<div class="summary-row"><span>เจ้าของ / แมว</span><span>' + (state.ownerName || '-') + ' / ' + (state.petName || '-') + '</span></div>' +
       (priceInfo ?
         '<div class="summary-row"><span>ราคา</span><span>' + priceInfo.pricePerNight.toLocaleString() + ' บาท x ' + priceInfo.nights + ' คืน</span></div>' +
-        '<div class="summary-row"><span>ยอดรวมโดยประมาณ</span><span class="price-highlight">' + priceInfo.total.toLocaleString() + ' บาท</span></div>'
+        (state.couponApplied ?
+          '<div class="summary-row"><span>ส่วนลด (' + state.couponApplied.code + ')</span><span>-' + state.couponApplied.discount.toLocaleString() + ' บาท</span></div>' +
+          '<div class="summary-row"><span>ยอดสุทธิ</span><span class="price-highlight">' + Math.max(0, priceInfo.total - state.couponApplied.discount).toLocaleString() + ' บาท</span></div>'
+          : '<div class="summary-row"><span>ยอดรวมโดยประมาณ</span><span class="price-highlight">' + priceInfo.total.toLocaleString() + ' บาท</span></div>')
         : '<div class="summary-row"><span>ราคา</span><span>ยังไม่ได้ตั้งราคาช่วงนี้</span></div>') +
     '</div>';
+
+    if (priceInfo) {
+      html += '<div class="card">' +
+        '<div class="card-title">โค้ดส่วนลด</div>' +
+        '<div class="coupon-row">' +
+          '<input type="text" id="inCoupon" placeholder="กรอกโค้ดคูปอง" value="' + state.couponInput + '" oninput="state.couponInput=this.value">' +
+          '<button class="btn btn-primary btn-small" onclick="applyCoupon()">ใช้โค้ด</button>' +
+        '</div>' +
+        (state.couponError ? '<div class="error-text">' + state.couponError + '</div>' : '') +
+        (state.couponApplied ? '<div class="coupon-applied"><span>ใช้โค้ด ' + state.couponApplied.code + ' แล้ว ลด ' + state.couponApplied.discount.toLocaleString() + ' บาท</span><span class="coupon-remove" onclick="removeCoupon()">เอาออก</span></div>' : '') +
+      '</div>';
+    }
 
     html += '<button class="btn btn-primary" id="submitBtn" onclick="submitBooking()">' + PAW_ICON + 'ยืนยันการจอง</button>' +
       '<div id="formError" class="error-text"></div>';
@@ -519,6 +619,24 @@ function selectZone(key) { state.zone=key; state.level=null; state.room=null; re
 function selectLevel(lv) { state.level=lv; state.room=null; render(); }
 function selectRoom(r) { state.room=r; render(); }
 
+async function applyCoupon() {
+  const code = (document.getElementById('inCoupon').value || '').trim();
+  state.couponInput = code;
+  if (!code) { state.couponError = 'กรุณากรอกโค้ดคูปอง'; render(); return; }
+  const priceInfo = estimateTotal(state.room, state.zone, state.level, state.checkin, state.checkout);
+  if (!priceInfo) { state.couponError = 'ยังไม่ทราบราคาห้อง ใช้คูปองไม่ได้'; render(); return; }
+  const res = await api('validateCoupon', { code: code, subtotal: priceInfo.total });
+  if (res && res.valid) {
+    state.couponApplied = { code: code.toUpperCase(), discount: res.discount };
+    state.couponError = '';
+  } else {
+    state.couponApplied = null;
+    state.couponError = (res && res.error) || 'โค้ดไม่ถูกต้อง';
+  }
+  render();
+}
+function removeCoupon() { state.couponApplied = null; state.couponInput = ''; state.couponError = ''; render(); }
+
 async function submitBooking() {
   const errEl = document.getElementById('formError');
   if (!state.ownerName.trim() || !state.ownerPhone.trim() || !state.petName.trim()) {
@@ -533,18 +651,70 @@ async function submitBooking() {
     zone: state.zone, roomId: state.room, checkin: state.checkin, checkout: state.checkout,
     ownerName: state.ownerName.trim(), ownerPhone: state.ownerPhone.trim(), petName: state.petName.trim(),
     photoBase64: state.petPhoto, referralCodeUsed: state.referralCodeUsed.trim(),
-    estimatedTotal: priceInfo ? priceInfo.total : null
+    estimatedTotal: priceInfo ? priceInfo.total : null,
+    couponCode: state.couponApplied ? state.couponApplied.code : '',
+    lineUserId: state.lineUserId, linePictureUrl: state.linePictureUrl
   });
 
   if (res && res.id) {
     state.lastBookingCode = res.id;
+    state.lastFinalTotal = res.finalTotal;
     state.step = 5;
     await loadAll();
+    render();
+    renderPaymentQR();
   } else {
     errEl.textContent = (res && res.error) || 'เกิดข้อผิดพลาด กรุณาลองใหม่';
     btn.disabled = false; btn.innerHTML = PAW_ICON + 'ยืนยันการจอง';
+    render();
   }
-  render();
+}
+
+function buildPromptPayPayload(promptpayId, amount) {
+  function tlv(id, value) { return id + String(value.length).padStart(2, '0') + value; }
+  function crc16(str) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < str.length; i++) {
+      crc ^= str.charCodeAt(i) << 8;
+      for (let b = 0; b < 8; b++) {
+        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+        crc &= 0xFFFF;
+      }
+    }
+    return crc.toString(16).toUpperCase().padStart(4, '0');
+  }
+  const idDigits = promptpayId.replace(/[^0-9]/g, '');
+  let target;
+  if (idDigits.length === 13) {
+    target = tlv('02', idDigits); // national ID / tax ID
+  } else {
+    let mobile = idDigits;
+    if (mobile.length === 10 && mobile.startsWith('0')) mobile = '66' + mobile.slice(1);
+    target = tlv('01', mobile); // mobile number, country-code prefixed
+  }
+  const merchantInfo = tlv('00', 'A000000677010111') + target;
+  let payload =
+    tlv('00', '01') +
+    tlv('01', amount ? '12' : '11') +
+    tlv('29', merchantInfo) +
+    tlv('53', '764') +
+    (amount ? tlv('54', Number(amount).toFixed(2)) : '') +
+    tlv('58', 'TH');
+  payload += '6304';
+  return payload + crc16(payload);
+}
+
+function renderPaymentQR() {
+  const container = document.getElementById('qrContainer');
+  if (!container) return;
+  const promptpayId = state.publicConfig.promptpayId;
+  const amount = state.lastFinalTotal;
+  if (!promptpayId || !amount) { container.innerHTML = ''; return; }
+  const payload = buildPromptPayPayload(promptpayId, amount);
+  container.innerHTML = '';
+  try {
+    new QRCode(container, { text: payload, width: 200, height: 200 });
+  } catch (err) { console.log('QR render failed', err); }
 }
 
 function renderStaffLogin() {
@@ -567,16 +737,20 @@ function renderStaff() {
   let html = '<div class="wrap">';
   html += '<div class="staff-tabs">' +
     '<div class="staff-tab-btn ' + (state.staffTab==='bookings'?'active':'') + '" onclick="setStaffTab(\'bookings\')">การจอง</div>' +
+    '<div class="staff-tab-btn ' + (state.staffTab==='pets'?'active':'') + '" onclick="setStaffTab(\'pets\')">ลูกค้า &amp; แมว</div>' +
     '<div class="staff-tab-btn ' + (state.staffTab==='rooms'?'active':'') + '" onclick="setStaffTab(\'rooms\')">จัดการห้องพัก</div>' +
     '<div class="staff-tab-btn ' + (state.staffTab==='pricing'?'active':'') + '" onclick="setStaffTab(\'pricing\')">จัดการราคา</div>' +
+    '<div class="staff-tab-btn ' + (state.staffTab==='coupons'?'active':'') + '" onclick="setStaffTab(\'coupons\')">คูปอง</div>' +
     '<div class="staff-tab-btn ' + (state.staffTab==='theme'?'active':'') + '" onclick="setStaffTab(\'theme\')">ตกแต่งเว็บ</div>' +
     '<div class="staff-tab-btn ' + (state.staffTab==='report'?'active':'') + '" onclick="setStaffTab(\'report\')">รายงาน</div>' +
-    (state.role==='superadmin' ? '<div class="staff-tab-btn ' + (state.staffTab==='settings'?'active':'') + '" onclick="setStaffTab(\'settings\')">รหัสผ่าน</div>' : '') +
+    (state.role==='superadmin' ? '<div class="staff-tab-btn ' + (state.staffTab==='settings'?'active':'') + '" onclick="setStaffTab(\'settings\')">ตั้งค่าระบบ</div>' : '') +
   '</div>';
 
   if (state.staffTab === 'bookings') html += staffBookingsHtml();
+  else if (state.staffTab === 'pets') html += staffPetsHtml();
   else if (state.staffTab === 'rooms') html += staffRoomsHtml();
   else if (state.staffTab === 'pricing') html += staffPricingHtml();
+  else if (state.staffTab === 'coupons') html += staffCouponsHtml();
   else if (state.staffTab === 'theme') html += staffThemeHtml();
   else if (state.staffTab === 'report') html += staffReportHtml();
   else if (state.staffTab === 'settings') html += staffSettingsHtml();
@@ -585,6 +759,8 @@ function renderStaff() {
   html += '</div>';
   el.innerHTML = html;
   if (state.staffTab === 'report' && !state.report) loadReport();
+  if (state.staffTab === 'pets' && !state.petsLoaded) loadPets();
+  if (state.staffTab === 'coupons' && !state.couponsLoaded) loadCoupons();
 }
 
 function setStaffTab(tab) { state.staffTab = tab; render(); }
@@ -884,7 +1060,7 @@ async function removeCoverImage() {
 }
 
 function staffSettingsHtml() {
-  return '<div class="card">' +
+  let html = '<div class="card">' +
     '<div class="card-title">ตั้งค่ารหัสผ่านเจ้าหน้าที่</div>' +
     '<label>รหัสแอดมินใหม่ (เว้นว่างถ้าไม่เปลี่ยน)</label>' +
     '<input type="text" id="inAdminPin" placeholder="รหัสแอดมินใหม่">' +
@@ -895,6 +1071,63 @@ function staffSettingsHtml() {
     '<div style="font-size:11px; color:#A08A5F; margin-top:14px; line-height:1.6;">' +
       'รหัสผ่านเก็บอยู่ในชีต "Config" ของ Google Sheets ฐานข้อมูล — ควรเปลี่ยนจากค่าเริ่มต้นก่อนใช้งานจริง' +
     '</div></div>';
+
+  html += '<div class="card">' +
+    '<div class="card-title">รับชำระเงินผ่าน PromptPay</div>' +
+    '<label>เบอร์ PromptPay หรือเลขผู้เสียภาษี</label>' +
+    '<input type="text" id="inPromptpay" placeholder="เช่น 0812345678" value="' + (state.publicConfig.promptpayId || '') + '">' +
+    '<button class="btn btn-primary" style="margin-top:14px;" onclick="savePromptpay()">' + PAW_ICON + 'บันทึก</button>' +
+    '<div style="font-size:11px; color:#4C8A4C; margin-top:8px;">' + state.paymentMsg + '</div>' +
+    '<div style="font-size:11px; color:#A08A5F; margin-top:10px; line-height:1.6;">' +
+      'ระบบจะสร้าง QR PromptPay ให้ลูกค้าสแกนจ่ายเองหลังจองสำเร็จ — พนักงานต้องตรวจสอบยอดเงินเข้าบัญชีเองด้วยตา (ไม่ใช่ระบบตัดบัตร/เกตเวย์อัตโนมัติที่กระทบยอดให้อัตโนมัติ)' +
+    '</div></div>';
+
+  html += '<div class="card">' +
+    '<div class="card-title">เชื่อมต่อ LINE Login (LIFF)</div>' +
+    '<label>LIFF ID</label>' +
+    '<input type="text" id="inLiffId" placeholder="เช่น 1234567890-AbCdEfGh" value="' + (state.publicConfig.liffId || '') + '">' +
+    '<button class="btn btn-primary" style="margin-top:14px;" onclick="saveLiffId()">' + PAW_ICON + 'บันทึก</button>' +
+    '<div style="font-size:11px; color:#4C8A4C; margin-top:8px;">' + state.liffMsg + '</div>' +
+    '<div style="font-size:11px; color:#A08A5F; margin-top:10px; line-height:1.6;">' +
+      'เนื่องจากมี LINE OA อยู่แล้ว ใช้ Messaging API channel เดิมได้เลย — ใน LINE Developers Console เปิด channel ของ OA นี้ → แท็บ LIFF → Add → ตั้ง Endpoint URL เป็นลิงก์เว็บนี้บน GitHub Pages → คัดลอก LIFF ID มาใส่ที่นี่' +
+    '</div></div>';
+
+  html += '<div class="card">' +
+    '<div class="card-title">เชื่อมต่อ LINE Messaging API (ส่งข้อความแจ้งเตือน)</div>' +
+    '<div class="status-pill ' + (state.publicConfig.lineConnected ? 'pill-active' : 'pill-done') + '" style="margin-bottom:12px; display:inline-block;">' +
+      (state.publicConfig.lineConnected ? 'เชื่อมต่อแล้ว' : 'ยังไม่ได้เชื่อมต่อ') + '</div>' +
+    '<label>Channel Access Token</label>' +
+    '<input type="text" id="inLineToken" placeholder="วาง Channel access token (long-lived) ที่นี่">' +
+    '<button class="btn btn-primary" style="margin-top:14px;" onclick="saveLineToken()">' + PAW_ICON + 'บันทึก</button>' +
+    '<div style="font-size:11px; color:#4C8A4C; margin-top:8px;">' + state.lineTokenMsg + '</div>' +
+    '<div style="font-size:11px; color:#A08A5F; margin-top:10px; line-height:1.6;">' +
+      'หาได้จาก channel ของ OA เดิม → แท็บ Messaging API → เลื่อนลงหา "Channel access token" → กด Issue (ถ้ายังไม่เคยออก) → คัดลอกมาวาง เมื่อเชื่อมต่อแล้ว ระบบจะส่งข้อความยืนยันการจองและขอบคุณหลังเช็คเอาท์ให้ลูกค้าที่ล็อกอินด้วย LINE โดยอัตโนมัติ (ช่องนี้เป็นข้อมูลลับ จะไม่แสดงค่าที่บันทึกไว้แล้วให้เห็นซ้ำ)' +
+    '</div></div>';
+  return html;
+}
+
+async function saveLineToken() {
+  const val = document.getElementById('inLineToken').value.trim();
+  if (!val) { state.lineTokenMsg = 'กรุณาวาง Channel Access Token'; render(); return; }
+  const res = await api('setLineChannelToken', { token: val, pin: state.pin });
+  if (res && res.ok) { state.publicConfig.lineConnected = true; state.lineTokenMsg = 'บันทึกเรียบร้อย เชื่อมต่อ LINE Messaging API แล้ว'; }
+  else { state.lineTokenMsg = ''; alert((res && res.error) || 'เกิดข้อผิดพลาด'); }
+  render();
+}
+
+async function savePromptpay() {
+  const val = document.getElementById('inPromptpay').value.trim();
+  const res = await api('setPaymentConfig', { promptpayId: val, pin: state.pin });
+  if (res && res.ok) { state.publicConfig.promptpayId = val; state.paymentMsg = 'บันทึกเรียบร้อย'; }
+  else { state.paymentMsg = ''; alert((res && res.error) || 'เกิดข้อผิดพลาด'); }
+  render();
+}
+async function saveLiffId() {
+  const val = document.getElementById('inLiffId').value.trim();
+  const res = await api('setLiffId', { liffId: val, pin: state.pin });
+  if (res && res.ok) { state.publicConfig.liffId = val; state.liffMsg = 'บันทึกเรียบร้อย — รีเฟรชหน้าเว็บเพื่อเริ่มใช้งาน LINE Login'; }
+  else { state.liffMsg = ''; alert((res && res.error) || 'เกิดข้อผิดพลาด'); }
+  render();
 }
 
 async function saveSettingsPins() {
@@ -908,6 +1141,216 @@ async function saveSettingsPins() {
   } else {
     state.settingsMsg = '';
     alert((res && res.error) || 'เกิดข้อผิดพลาด');
+  }
+  render();
+}
+
+/* ---------- pets & customer CRM ---------- */
+async function loadPets() {
+  const res = await api('getPets', { pin: state.pin });
+  state.pets = res && res.pets ? res.pets : [];
+  state.petsLoaded = true;
+  render();
+}
+
+function staffPetsHtml() {
+  if (state.selectedPet) return petDetailHtml();
+  const search = state.petSearch.trim().toLowerCase();
+  const filtered = state.pets.filter(p =>
+    !search || p.petName.toLowerCase().includes(search) || (p.ownerName || '').toLowerCase().includes(search) || p.ownerPhone.includes(search)
+  );
+  let html = '<div class="card">' +
+    '<div class="card-title">ค้นหาลูกค้า / น้องแมว</div>' +
+    '<input type="text" placeholder="ค้นหาชื่อแมว ชื่อเจ้าของ หรือเบอร์โทร" value="' + state.petSearch + '" oninput="state.petSearch=this.value; render();">' +
+  '</div>';
+  if (filtered.length === 0) html += '<div class="empty-state">ไม่พบข้อมูล</div>';
+  else filtered.forEach(p => {
+    html += '<div class="pet-list-item" onclick="openPetDetail(\'' + p.petId + '\')">' +
+      (p.photoUrl ? '<img src="' + driveImg(p.photoUrl, 200) + '">' : '<div class="plph"></div>') +
+      '<div><div class="pln">' + p.petName + '</div><div class="pls">' + (p.ownerName || '-') + ' · ' + p.ownerPhone + '</div></div>' +
+    '</div>';
+  });
+  html += '<button class="btn btn-ghost" onclick="state.petsLoaded=false; loadPets();">รีเฟรชรายชื่อ</button>';
+  return html;
+}
+
+async function openPetDetail(petId) {
+  const res = await api('getPetProfile', { petId: petId, pin: state.pin });
+  if (!res || res.error) { alert((res && res.error) || 'โหลดข้อมูลไม่สำเร็จ'); return; }
+  state.selectedPet = res;
+  state.petEditMsg = ''; state.newLogText = ''; state.newLogType = 'food';
+  render();
+}
+function closePetDetail() { state.selectedPet = null; render(); }
+
+function petDetailHtml() {
+  const d = state.selectedPet;
+  const p = d.pet;
+  let html = '<div class="card">' +
+    '<div class="pet-detail-header">' +
+      (p.photoUrl ? '<img src="' + driveImg(p.photoUrl, 400) + '">' : '<div class="pdph"></div>') +
+      '<div><div class="pdn">' + p.petName + '</div><div class="pdo">เจ้าของ: ' + d.owner.ownerName + ' · ' + d.owner.phone + '</div>' +
+      '<div class="pdo">แต้มสะสม: ' + (d.owner.points || 0) + ' · เข้าพักแล้ว ' + (d.owner.totalStays || 0) + ' ครั้ง</div></div>' +
+    '</div></div>';
+
+  html += '<div class="card">' +
+    '<div class="card-title">ข้อมูลแมว</div>' +
+    '<label>สายพันธุ์</label><input type="text" id="petBreed" value="' + (p.breed || '') + '">' +
+    '<label>อายุ</label><input type="text" id="petAge" placeholder="เช่น 3 ปี" value="' + (p.ageText || '') + '">' +
+    '<label>ข้อมูลแพ้/ห้ามให้</label><input type="text" id="petAllergy" placeholder="เช่น แพ้อาหารทะเล" value="' + (p.allergyNotes || '') + '">' +
+    '<label>นิสัย/หมายเหตุพิเศษ</label><input type="text" id="petSpecial" placeholder="เช่น กลัวเสียงดัง ให้พักโซนเงียบ" value="' + (p.specialNotes || '') + '">' +
+    '<button class="btn btn-primary" style="margin-top:14px;" onclick="savePetEdit()">' + PAW_ICON + 'บันทึกข้อมูล</button>' +
+    '<div style="font-size:11px; color:#4C8A4C; margin-top:8px;">' + state.petEditMsg + '</div>' +
+  '</div>';
+
+  html += '<div class="card">' +
+    '<div class="card-title">บันทึกประวัติ (อาหาร / หมายเหตุ / การแพทย์)</div>' +
+    '<select id="logType">' +
+      '<option value="food" ' + (state.newLogType==='food'?'selected':'') + '>อาหารที่ทาน</option>' +
+      '<option value="note" ' + (state.newLogType==='note'?'selected':'') + '>หมายเหตุทั่วไป</option>' +
+      '<option value="medical" ' + (state.newLogType==='medical'?'selected':'') + '>ข้อมูลการแพทย์</option>' +
+    '</select>' +
+    '<label>รายละเอียด</label>' +
+    '<input type="text" id="logText" placeholder="เช่น ทานอาหารเม็ด Royal Canin มื้อเช้า" value="' + state.newLogText + '" oninput="state.newLogText=this.value">' +
+    '<button class="btn btn-primary" style="margin-top:12px;" onclick="submitPetLog()">' + PAW_ICON + 'บันทึก</button>' +
+  '</div>';
+
+  html += '<div class="card"><div class="card-title">ประวัติทั้งหมด</div>';
+  if (d.logs.length === 0) html += '<div class="empty-state">ยังไม่มีบันทึก</div>';
+  else d.logs.forEach(l => {
+    const tagLabel = l.type === 'food' ? 'อาหาร' : (l.type === 'medical' ? 'การแพทย์' : 'หมายเหตุ');
+    html += '<div class="log-item"><span class="log-tag log-' + l.type + '">' + tagLabel + '</span>' +
+      '<div><div class="log-text">' + l.text + '</div><div class="log-date">' + String(l.createdAt).slice(0,16).replace('T',' ') + '</div></div></div>';
+  });
+  html += '</div>';
+
+  if (d.bookings.length > 0) {
+    html += '<div class="card"><div class="card-title">ประวัติการเข้าพัก</div>';
+    d.bookings.forEach(b => {
+      html += '<div class="rank-row"><span>' + z_name(b.zone) + ' · ' + b.roomId + '</span><span>' + b.checkin + ' ถึง ' + b.checkout + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  html += '<button class="btn btn-ghost" onclick="closePetDetail()">กลับไปรายชื่อ</button>';
+  return html;
+}
+
+async function savePetEdit() {
+  const pet = {
+    petId: state.selectedPet.pet.petId,
+    breed: document.getElementById('petBreed').value,
+    ageText: document.getElementById('petAge').value,
+    allergyNotes: document.getElementById('petAllergy').value,
+    specialNotes: document.getElementById('petSpecial').value
+  };
+  const res = await api('upsertPet', { pet: pet, pin: state.pin });
+  if (res && res.ok) {
+    state.petEditMsg = 'บันทึกเรียบร้อย';
+    Object.assign(state.selectedPet.pet, pet);
+  } else {
+    state.petEditMsg = '';
+    alert((res && res.error) || 'เกิดข้อผิดพลาด');
+  }
+  render();
+}
+
+async function submitPetLog() {
+  const type = document.getElementById('logType').value;
+  const text = document.getElementById('logText').value.trim();
+  if (!text) return;
+  const res = await api('addPetLog', { petId: state.selectedPet.pet.petId, type: type, text: text, pin: state.pin });
+  if (res && res.ok) {
+    state.newLogText = '';
+    await openPetDetail(state.selectedPet.pet.petId);
+  } else {
+    alert((res && res.error) || 'เกิดข้อผิดพลาด');
+  }
+}
+
+/* ---------- coupons ---------- */
+async function loadCoupons() {
+  const res = await api('getCoupons', { pin: state.pin });
+  state.coupons = res && res.coupons ? res.coupons : [];
+  state.couponsLoaded = true;
+  render();
+}
+
+function staffCouponsHtml() {
+  const f = state.couponForm;
+  let html = '<div class="card">' +
+    '<div class="card-title">ส่งข้อความหาลูกค้าผ่าน LINE</div>' +
+    (state.publicConfig.lineConnected ?
+      '<label>ข้อความ (จะส่งถึงลูกค้าทุกคนที่เคยล็อกอินด้วย LINE)</label>' +
+      '<input type="text" id="broadcastText" placeholder="เช่น วันนี้ลด 10% ใช้โค้ด CAT10 ถึงสิ้นเดือนนี้" value="' + state.broadcastText + '" oninput="state.broadcastText=this.value">' +
+      '<button class="btn line-login-btn" style="margin-top:14px;" onclick="sendBroadcastMsg()">ส่งข้อความ</button>' +
+      '<div style="font-size:11px; color:#4C8A4C; margin-top:8px;">' + state.broadcastMsg + '</div>'
+      : '<div class="empty-state">ยังไม่ได้เชื่อมต่อ LINE Messaging API — ไปตั้งค่าที่เมนู "ตั้งค่าระบบ" ก่อน (ผู้ดูแลระบบเท่านั้น)</div>') +
+  '</div>';
+
+  html += '<div class="card">' +
+    '<div class="card-title">สร้างคูปองใหม่</div>' +
+    '<label>โค้ดคูปอง</label>' +
+    '<input type="text" id="cpCode" placeholder="เช่น CAT10" value="' + f.code + '" oninput="state.couponForm.code=this.value.toUpperCase()">' +
+    '<label>ประเภทส่วนลด</label>' +
+    '<select id="cpType" onchange="state.couponForm.discountType=this.value">' +
+      '<option value="percent" ' + (f.discountType==='percent'?'selected':'') + '>เปอร์เซ็นต์ (%)</option>' +
+      '<option value="amount" ' + (f.discountType==='amount'?'selected':'') + '>จำนวนเงิน (บาท)</option>' +
+    '</select>' +
+    '<label>มูลค่าส่วนลด</label>' +
+    '<input type="number" id="cpValue" placeholder="เช่น 10" value="' + f.value + '" oninput="state.couponForm.value=this.value">' +
+    '<label>วันหมดอายุ (เว้นว่าง = ไม่หมดอายุ)</label>' +
+    '<input type="date" id="cpExpiry" value="' + f.expiryDate + '" oninput="state.couponForm.expiryDate=this.value">' +
+    '<label>จำนวนครั้งที่ใช้ได้ (0 = ไม่จำกัด)</label>' +
+    '<input type="number" id="cpLimit" value="' + f.usageLimit + '" oninput="state.couponForm.usageLimit=this.value">' +
+    '<label>หมายเหตุ</label>' +
+    '<input type="text" id="cpNote" value="' + f.note + '" oninput="state.couponForm.note=this.value">' +
+    '<button class="btn btn-primary" style="margin-top:14px;" onclick="submitCoupon()">' + PAW_ICON + 'สร้างคูปอง</button>' +
+    '<div class="error-text">' + state.couponFormMsg + '</div>' +
+  '</div>';
+
+  html += '<div class="card-title" style="margin-bottom:10px;">คูปองทั้งหมด</div>';
+  if (!state.coupons.length) html += '<div class="empty-state">ยังไม่มีคูปอง</div>';
+  else state.coupons.slice().reverse().forEach(c => {
+    const valueLabel = c.discountType === 'percent' ? c.value + '%' : Number(c.value).toLocaleString() + ' บาท';
+    html += '<div class="coupon-card">' +
+      '<div class="cc-code">' + c.code + '</div>' +
+      '<div class="cc-detail">ลด ' + valueLabel + (c.expiryDate ? ' · หมดอายุ ' + c.expiryDate : ' · ไม่หมดอายุ') + '</div>' +
+      '<div class="cc-detail">ใช้ไปแล้ว ' + (c.usedCount || 0) + (Number(c.usageLimit) > 0 ? ' / ' + c.usageLimit : '') + ' ครั้ง' + (c.note ? ' · ' + c.note : '') + '</div>' +
+      '<button class="btn-small btn-ghost" style="margin-top:8px;" onclick="removeCouponAdmin(\'' + c.code + '\')">ลบคูปอง</button>' +
+    '</div>';
+  });
+  return html;
+}
+
+async function submitCoupon() {
+  const f = state.couponForm;
+  if (!f.code || !f.value) { state.couponFormMsg = 'กรอกข้อมูลให้ครบ'; render(); return; }
+  const res = await api('createCoupon', { coupon: f, pin: state.pin });
+  if (res && res.ok) {
+    state.couponFormMsg = '';
+    state.couponForm = { code: '', discountType: 'percent', value: '', expiryDate: '', usageLimit: '', note: '' };
+    await loadCoupons();
+  } else {
+    state.couponFormMsg = (res && res.error) || 'เกิดข้อผิดพลาด';
+  }
+  render();
+}
+async function removeCouponAdmin(code) {
+  const res = await api('deleteCoupon', { code: code, pin: state.pin });
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  await loadCoupons(); render();
+}
+
+async function sendBroadcastMsg() {
+  const text = (document.getElementById('broadcastText').value || '').trim();
+  if (!text) { state.broadcastMsg = 'กรุณากรอกข้อความ'; render(); return; }
+  const res = await api('sendBroadcast', { message: text, pin: state.pin });
+  if (res && res.ok) {
+    state.broadcastMsg = 'ส่งข้อความสำเร็จถึงลูกค้า ' + res.sentCount + ' คน';
+    state.broadcastText = '';
+  } else {
+    state.broadcastMsg = (res && res.error) || 'เกิดข้อผิดพลาด';
   }
   render();
 }
@@ -957,6 +1400,7 @@ function render() {
   render();
   await loadAll();
   render();
+  initLineLogin();
 })();
 </script>
 </body>

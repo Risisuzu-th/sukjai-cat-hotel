@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sukjai Cat Hotel - ระบบจองห้องพัก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&family=Kanit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --primary: #7A4A17;
@@ -13,7 +16,7 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    font-family: -apple-system, "Segoe UI", "Noto Sans Thai", "Sarabun", sans-serif;
+    font-family: 'Mali', 'Kanit', -apple-system, "Segoe UI", "Noto Sans Thai", "Sarabun", sans-serif;
     background-color: var(--bg);
     background-image: var(--bg-image, none);
     background-size: cover;
@@ -28,14 +31,14 @@
   body.has-bg-image .bg-overlay { display: block; }
 
   .header { background: var(--card); padding: 28px 20px 22px 20px; text-align: center; border-bottom: 2px solid var(--border); position: relative; transition: background-color .3s; }
-  .header .brand { font-size: 22px; font-weight: bold; color: #4A3319; }
+  .header .brand { font-size: 22px; font-weight: 700; color: #4A3319; font-family: 'Kanit', 'Mali', sans-serif; }
   .header .sub { font-size: 12px; color: #A67C3D; margin-top: 4px; letter-spacing: 1px; }
   .staff-badge { position:absolute; top:14px; right:16px; font-size:11px; background:var(--primary); color:#fff; padding:5px 12px; border-radius:14px; font-weight:bold; cursor:pointer; }
 
   .wrap { max-width: 480px; margin: 20px auto 0 auto; padding: 0 16px; position: relative; z-index: 1; }
 
   .card { background:#fff; border-radius:14px; border:1px solid var(--border); padding:18px; margin-bottom:16px; }
-  .card-title { font-size:15px; font-weight:bold; color:#4A3319; margin-bottom:12px; }
+  .card-title { font-size:15px; font-weight:700; color:#4A3319; margin-bottom:12px; font-family: 'Kanit', 'Mali', sans-serif; }
 
   label { display:block; font-size:12px; color:#8A7454; margin-bottom:6px; margin-top:12px; }
   label:first-child { margin-top:0; }
@@ -47,31 +50,40 @@
   input:focus, select:focus { outline:none; border-color:#D9A441; }
 
   .zone-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .zone-card { border-radius:12px; padding:14px; cursor:pointer; border:2px solid transparent; background-size: cover; background-position: center; position: relative; overflow: hidden; }
-  .zone-card.selected { border-color:#4A3319; }
-  .zone-card .zt { font-weight:bold; font-size:14px; }
+  .zone-card { border-radius:20px; padding:14px; cursor:pointer; border:2.5px solid transparent; background-size: cover; background-position: center; position: relative; overflow: hidden; transition: transform .15s; }
+  .zone-card:active { transform: scale(0.97); }
+  .zone-card.selected { border-color:#4A3319; transform: scale(1.02); }
+  .zone-card .zt { font-weight:700; font-size:14.5px; font-family: 'Kanit', 'Mali', sans-serif; }
   .zone-card .zs { font-size:11px; margin-top:2px; }
   .zone-card .zc { font-size:10.5px; margin-top:8px; opacity:0.8; }
-  .z-sunny { background-color:#FBEACB; color:#6B4A15; }
-  .z-cozy  { background-color:#FBEAF0; color:#7A2E4B; }
-  .z-cloud { background-color:#E6F1FB; color:#1D4E80; }
-  .z-sig   { background-color:#F1ECFB; color:#4A3E8C; }
+  .zone-card .zpaw { position:absolute; top:8px; right:10px; width:20px; height:20px; opacity:0.35; }
+  .z-sunny { background-color:#FFDD8A; color:#6B4A15; }
+  .z-cozy  { background-color:#FFC2D9; color:#7A2E4B; }
+  .z-cloud { background-color:#B8E0FB; color:#0C4C82; }
+  .z-sig   { background-color:#D9C9FA; color:#4A3E8C; }
 
   .level-toggle { display:flex; gap:8px; margin-bottom:14px; }
-  .level-btn { flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:#fff; color:#8A7454; font-size:13px; font-weight:bold; cursor:pointer; text-align:center; }
-  .level-btn.active { background:var(--card); border-color:#D9A441; color:var(--primary); }
+  .level-btn { flex:1; padding:9px; border-radius:999px; border:2px solid var(--border); background:#fff; color:#8A7454; font-size:13px; font-weight:700; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px; font-family: 'Kanit', 'Mali', sans-serif; transition: transform .12s; }
+  .level-btn:active { transform: scale(0.95); }
+  .level-btn.active { background:var(--card); border-color:var(--primary); color:var(--primary); }
+  .level-btn .paw-icon { width:13px; height:13px; opacity:0.6; }
 
-  .room-grid { display:grid; grid-template-columns: repeat(4,1fr); gap:8px; }
-  .room-tile { aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer; border:2px solid transparent; text-align:center; background-size: cover; background-position: center; }
-  .room-open { background-color:#FBEACB; color:#6B4A15; }
-  .room-open.selected { border-color:#4A3319; }
+  .room-grid { display:grid; grid-template-columns: repeat(4,1fr); gap:9px; }
+  .room-tile { aspect-ratio:1; border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; cursor:pointer; border:2.5px solid transparent; text-align:center; background-size: cover; background-position: center; position:relative; transition: transform .12s; font-family: 'Kanit', 'Mali', sans-serif; }
+  .room-tile:active { transform: scale(0.93); }
+  .room-open { background-color:#FFE6B8; color:#6B4A15; }
+  .room-open.selected { border-color:#4A3319; transform: scale(1.06); }
+  .room-open.selected::after { content:''; position:absolute; bottom:3px; right:3px; width:14px; height:14px; background: var(--primary); border-radius:50%; }
   .room-taken { background-color:#EFEAE0; color:#B7AC96; cursor:not-allowed; }
   .room-closed { background-color:#F7E3E3; color:#A34C4C; cursor:not-allowed; font-size:10px; }
   .room-photo-badge { text-shadow: 0 1px 3px rgba(0,0,0,0.6); color:#fff; }
 
+  .date-card-icon { display:inline-flex; align-items:center; gap:6px; }
+
   .room-photo-preview { width:100%; height:140px; border-radius:12px; object-fit:cover; margin-bottom:12px; }
 
-  .btn { width:100%; padding:13px; border-radius:999px; border:none; font-size:15px; font-weight:bold; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .btn { width:100%; padding:13px; border-radius:999px; border:none; font-size:15px; font-weight:700; cursor:pointer; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px; font-family: 'Kanit', 'Mali', sans-serif; transition: transform .12s; }
+  .btn:active { transform: scale(0.96); }
   .btn-primary { background:var(--primary); color:#fff; }
   .btn-primary:disabled { background:#D9C39A; cursor:not-allowed; }
   .btn-ghost { background:#fff; border:1.5px solid var(--border); color:var(--primary); margin-top:8px; }
@@ -150,6 +162,9 @@
   .login-box { max-width:340px; margin: 60px auto 0 auto; padding: 0 16px; position: relative; z-index: 1; }
 
   .setup-banner { background:#F7E3E3; color:#A34C4C; font-size:12px; padding:12px 16px; text-align:center; }
+  .cover-banner { width:100%; max-width:480px; height:150px; object-fit:cover; display:block; margin:0 auto; border-radius: 0 0 20px 20px; }
+  .upload-error { color:#B7523F; font-size:11.5px; margin-top:8px; line-height:1.6; }
+  .upload-hint { font-size:10.5px; color:#A08A5F; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -160,6 +175,7 @@
   <div class="sub">SUKJAI CAT HOTEL · ระบบจองห้องพักออนไลน์</div>
   <div id="staffBadge"></div>
 </div>
+<img id="coverBanner" class="cover-banner" style="display:none;">
 <div id="setupBanner"></div>
 <div id="appRoot"></div>
 
@@ -198,12 +214,12 @@ let state = {
   step: 1,
   checkin: '', checkout: '',
   zone: null, level: null, room: null,
-  ownerName: '', ownerPhone: '', petName: '', petPhoto: null, referralCodeUsed: '',
+  ownerName: '', ownerPhone: '', petName: '', petPhoto: null, petPhotoError: '', referralCodeUsed: '',
   lastBookingCode: null,
   bookings: [], roomStatus: {}, customers: [], roomPhotos: {}, pricing: [],
   theme: { themeName: 'default', themePrimary: '#7A4A17', themeBg: '#FBF6EC', themeCard: '#F3E4C8', themeBgImage: '' },
   report: null,
-  settingsMsg: '', pricingMsg: '', themeMsg: '',
+  settingsMsg: '', pricingMsg: '', themeMsg: '', bgMsg: '', coverMsg: '',
   pricingForm: { targetType: 'zone', targetValue: 'sunny', startDate: '', endDate: '', pricePerNight: '', note: '' },
   loading: true, apiError: ''
 };
@@ -248,6 +264,13 @@ function applyTheme(theme) {
   } else {
     document.body.style.setProperty('--bg-image', 'none');
     document.body.classList.remove('has-bg-image');
+  }
+  const coverEl = document.getElementById('coverBanner');
+  if (theme.themeCoverImage) {
+    coverEl.src = theme.themeCoverImage;
+    coverEl.style.display = 'block';
+  } else {
+    coverEl.style.display = 'none';
   }
 }
 
@@ -305,10 +328,28 @@ function resetBookingForm() {
   state.lastBookingCode = null;
 }
 
-function resizeImageFile(file, maxDim, quality, callback) {
+const MAX_ORIGINAL_FILE_BYTES = 12 * 1024 * 1024; // 12MB original file cap
+
+function resizeImageFile(file, maxDim, quality, onSuccess, onError) {
+  onError = onError || function(msg) { alert(msg); };
+  if (!file.type || file.type.indexOf('image/') !== 0) {
+    onError('ไฟล์นี้ไม่ใช่รูปภาพ กรุณาเลือกไฟล์ JPG หรือ PNG');
+    return;
+  }
+  const nameLower = (file.name || '').toLowerCase();
+  if (file.type === 'image/heic' || file.type === 'image/heif' || nameLower.endsWith('.heic') || nameLower.endsWith('.heif')) {
+    onError('ไฟล์นี้เป็นชนิด HEIC (รูปจาก iPhone) เบราว์เซอร์เปิดไม่ได้ กรุณาไปที่ตั้งค่ากล้อง iPhone > รูปแบบ > เลือก "เข้ากันได้มากที่สุด" แล้วถ่ายใหม่ หรือแคปหน้าจอรูปแล้วอัปโหลดรูปแคปแทน');
+    return;
+  }
+  if (file.size > MAX_ORIGINAL_FILE_BYTES) {
+    onError('ไฟล์รูปใหญ่เกินไป (' + (file.size/1024/1024).toFixed(1) + 'MB) กรุณาเลือกไฟล์ไม่เกิน 12MB');
+    return;
+  }
   const reader = new FileReader();
+  reader.onerror = function() { onError('อ่านไฟล์รูปไม่สำเร็จ กรุณาลองรูปอื่น'); };
   reader.onload = function(e) {
     const img = new Image();
+    img.onerror = function() { onError('เปิดไฟล์รูปนี้ไม่ได้ กรุณาลองรูปอื่น (แนะนำ JPG หรือ PNG)'); };
     img.onload = function() {
       let w = img.width, h = img.height;
       if (w > h && w > maxDim) { h = h * (maxDim / w); w = maxDim; }
@@ -316,7 +357,7 @@ function resizeImageFile(file, maxDim, quality, callback) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL('image/jpeg', quality));
+      onSuccess(canvas.toDataURL('image/jpeg', quality));
     };
     img.src = e.target.result;
   };
@@ -326,7 +367,11 @@ function resizeImageFile(file, maxDim, quality, callback) {
 function handlePhotoUpload(evt) {
   const file = evt.target.files[0];
   if (!file) return;
-  resizeImageFile(file, 320, 0.6, (dataUrl) => { state.petPhoto = dataUrl; render(); });
+  state.petPhotoError = '';
+  resizeImageFile(file, 320, 0.6,
+    (dataUrl) => { state.petPhoto = dataUrl; state.petPhotoError = ''; render(); },
+    (msg) => { state.petPhotoError = msg; render(); }
+  );
 }
 
 function findCustomerByPhone(phone) {
@@ -367,6 +412,7 @@ function renderCustomer() {
       const totalRooms = Object.values(z.rooms).flat().length;
       const availCount = Object.values(z.rooms).flat().filter(r => isRoomAvailable(r, state.checkin, state.checkout)).length;
       html += '<div class="zone-card ' + z.cls + ' ' + sel + '" onclick="selectZone(\'' + key + '\')">' +
+        PAW_ICON.replace('paw-icon', 'paw-icon zpaw') +
         '<div class="zt">' + z.name + '</div><div class="zs">' + z.desc + '</div>' +
         '<div class="zc">ว่าง ' + availCount + '/' + totalRooms + ' ห้อง</div></div>';
     }
@@ -380,7 +426,7 @@ function renderCustomer() {
     html += '<div class="card"><div class="card-title">3. เลือกห้อง — ' + z.name + '</div>';
     if (levels.length > 1) {
       html += '<div class="level-toggle">';
-      for (const lv of levels) html += '<div class="level-btn ' + (state.level===lv?'active':'') + '" onclick="selectLevel(\'' + lv + '\')">' + lv + '</div>';
+      for (const lv of levels) html += '<div class="level-btn ' + (state.level===lv?'active':'') + '" onclick="selectLevel(\'' + lv + '\')">' + PAW_ICON + lv + '</div>';
       html += '</div>';
     }
     html += '<div class="room-grid">';
@@ -413,6 +459,7 @@ function renderCustomer() {
       '<input type="text" id="inPet" placeholder="เช่น น้องส้ม" value="' + state.petName + '" oninput="state.petName=this.value">' +
       '<label>รูปน้องแมว (ถ้ามี — เก็บไว้เป็นประวัติใน Google Drive)</label>' +
       '<input type="file" accept="image/*" onchange="handlePhotoUpload(event)">' +
+      (state.petPhotoError ? '<div class="upload-error">' + state.petPhotoError + '</div>' : '') +
       (state.petPhoto ? '<img class="photo-preview" src="' + state.petPhoto + '">' : '') +
       '<label>โค้ดชวนเพื่อน (ถ้ามี)</label>' +
       '<input type="text" id="inReferral" placeholder="เช่น REFAB12" value="' + state.referralCodeUsed + '" oninput="state.referralCodeUsed=this.value">' +
@@ -612,11 +659,14 @@ async function toggleRoomClosed(roomId) {
 function handleRoomPhotoUpload(evt, roomId) {
   const file = evt.target.files[0];
   if (!file) return;
-  resizeImageFile(file, 500, 0.7, async (dataUrl) => {
-    const res = await api('setRoomPhoto', { roomId: roomId, photoBase64: dataUrl, pin: state.pin });
-    if (!res || !res.ok) { alert((res && res.error) || 'อัปโหลดไม่สำเร็จ'); return; }
-    await loadAll(); render();
-  });
+  resizeImageFile(file, 500, 0.7,
+    async (dataUrl) => {
+      const res = await api('setRoomPhoto', { roomId: roomId, photoBase64: dataUrl, pin: state.pin });
+      if (!res || !res.ok) { alert((res && res.error) || 'อัปโหลดไม่สำเร็จ'); return; }
+      await loadAll(); render();
+    },
+    (msg) => { alert(msg); }
+  );
 }
 
 function staffPricingHtml() {
@@ -733,10 +783,21 @@ function staffThemeHtml() {
   html += '</div><div class="error-text">' + state.themeMsg + '</div></div>';
 
   html += '<div class="card">' +
-    '<div class="card-title">พื้นหลังเว็บไซต์ (อัปโหลดรูป JPG)</div>' +
+    '<div class="card-title">รูปปก (แถบภาพด้านบนสุดของเว็บ)</div>' +
+    (state.theme.themeCoverImage ? '<img class="bg-preview" src="' + state.theme.themeCoverImage + '">' : '<div class="bg-preview"></div>') +
+    '<label class="upload-btn-label" style="display:inline-block;">เลือกรูปปก<input type="file" accept="image/*" onchange="handleCoverUpload(event)"></label>' +
+    (state.theme.themeCoverImage ? '<button class="btn btn-ghost" onclick="removeCoverImage()">ลบรูปปก</button>' : '') +
+    '<div class="upload-error">' + state.coverMsg + '</div>' +
+    '<div class="upload-hint">แนะนำรูปแนวนอน ขนาดไม่เกิน 12MB (ระบบจะย่อไฟล์ให้อัตโนมัติ) ไฟล์ HEIC จาก iPhone เปิดไม่ได้ — ให้เปลี่ยนเป็น JPG/PNG ก่อน</div>' +
+  '</div>';
+
+  html += '<div class="card">' +
+    '<div class="card-title">พื้นหลังทั้งเว็บไซต์</div>' +
     (state.theme.themeBgImage ? '<img class="bg-preview" src="' + state.theme.themeBgImage + '">' : '<div class="bg-preview"></div>') +
     '<label class="upload-btn-label" style="display:inline-block;">เลือกรูปพื้นหลัง<input type="file" accept="image/*" onchange="handleBgUpload(event)"></label>' +
     (state.theme.themeBgImage ? '<button class="btn btn-ghost" onclick="removeBgImage()">ลบรูปพื้นหลัง (กลับไปใช้สีพื้น)</button>' : '') +
+    '<div class="upload-error">' + state.bgMsg + '</div>' +
+    '<div class="upload-hint">แนะนำขนาดไม่เกิน 12MB — ระบบใส่เลเยอร์จางทับให้ตัวหนังสือยังอ่านง่าย</div>' +
   '</div>';
   return html;
 }
@@ -758,18 +819,47 @@ async function applyThemePreset(themeName) {
 function handleBgUpload(evt) {
   const file = evt.target.files[0];
   if (!file) return;
-  resizeImageFile(file, 1200, 0.7, async (dataUrl) => {
-    const res = await api('setBackgroundImage', { photoBase64: dataUrl, pin: state.pin });
-    if (!res || !res.ok) { alert((res && res.error) || 'อัปโหลดไม่สำเร็จ'); return; }
-    state.theme.themeBgImage = res.url;
-    applyTheme(state.theme);
-    render();
-  });
+  state.bgMsg = 'กำลังอัปโหลด...'; render();
+  resizeImageFile(file, 1600, 0.72,
+    async (dataUrl) => {
+      const res = await api('setBackgroundImage', { photoBase64: dataUrl, pin: state.pin });
+      if (!res || !res.ok) { state.bgMsg = (res && res.error) || 'อัปโหลดไม่สำเร็จ'; render(); return; }
+      state.theme.themeBgImage = res.url;
+      state.bgMsg = '';
+      applyTheme(state.theme);
+      render();
+    },
+    (msg) => { state.bgMsg = msg; render(); }
+  );
 }
 async function removeBgImage() {
   const res = await api('removeBackgroundImage', { pin: state.pin });
   if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
   state.theme.themeBgImage = '';
+  applyTheme(state.theme);
+  render();
+}
+
+function handleCoverUpload(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  state.coverMsg = 'กำลังอัปโหลด...'; render();
+  resizeImageFile(file, 1600, 0.72,
+    async (dataUrl) => {
+      const res = await api('setCoverImage', { photoBase64: dataUrl, pin: state.pin });
+      if (!res || !res.ok) { state.coverMsg = (res && res.error) || 'อัปโหลดไม่สำเร็จ'; render(); return; }
+      state.theme.themeCoverImage = res.url;
+      state.coverMsg = '';
+      applyTheme(state.theme);
+      render();
+    },
+    (msg) => { state.coverMsg = msg; render(); }
+  );
+}
+async function removeCoverImage() {
+  const res = await api('removeCoverImage', { pin: state.pin });
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  state.theme.themeCoverImage = '';
   applyTheme(state.theme);
   render();
 }

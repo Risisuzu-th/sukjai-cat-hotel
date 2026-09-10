@@ -274,7 +274,7 @@ let state = {
   settingsMsg: '', pricingMsg: '', themeMsg: '', bgMsg: '', coverMsg: '', paymentMsg: '', liffMsg: '', lineTokenMsg: '', broadcastMsg: '', broadcastText: '',
   pricingForm: { targetType: 'zone', targetValue: 'sunny', startDate: '', endDate: '', pricePerNight: '', note: '' },
   couponForm: { code: '', discountType: 'percent', value: '', expiryDate: '', usageLimit: '', note: '' }, couponFormMsg: '',
-  pets: [], petsLoaded: false, selectedPet: null, petSearch: '', petEditMsg: '', newLogType: 'food', newLogText: '',
+  customerPets: [], petsLoaded: false, selectedPet: null, petSearch: '', petEditMsg: '', newLogType: 'food', newLogText: '',
   coupons: [], couponsLoaded: false,
   loading: true, apiError: '', loadError: ''
 };
@@ -1190,7 +1190,7 @@ async function saveSettingsPins() {
 /* ---------- pets & customer CRM ---------- */
 async function loadPets() {
   const res = await api('getPets', { pin: state.pin });
-  state.pets = res && res.pets ? res.pets : [];
+  state.customerPets = res && res.customers ? res.customers : [];
   state.petsLoaded = true;
   render();
 }
@@ -1198,22 +1198,58 @@ async function loadPets() {
 function staffPetsHtml() {
   if (state.selectedPet) return petDetailHtml();
   const search = state.petSearch.trim().toLowerCase();
-  const filtered = state.pets.filter(p =>
-    !search || p.petName.toLowerCase().includes(search) || (p.ownerName || '').toLowerCase().includes(search) || p.ownerPhone.includes(search)
+  const groups = state.customerPets.filter(g =>
+    !search ||
+    (g.ownerName || '').toLowerCase().includes(search) ||
+    g.phone.includes(search) ||
+    g.pets.some(p => (p.petName || '').toLowerCase().includes(search))
   );
+
   let html = '<div class="card">' +
     '<div class="card-title">ค้นหาลูกค้า / น้องแมว</div>' +
     '<input type="text" placeholder="ค้นหาชื่อแมว ชื่อเจ้าของ หรือเบอร์โทร" value="' + state.petSearch + '" oninput="state.petSearch=this.value; debouncedRender();">' +
   '</div>';
-  if (filtered.length === 0) html += '<div class="empty-state">ไม่พบข้อมูล</div>';
-  else filtered.forEach(p => {
-    html += '<div class="pet-list-item" onclick="openPetDetail(\'' + p.petId + '\')">' +
-      (p.photoUrl ? '<img src="' + driveImg(p.photoUrl, 200) + '">' : '<div class="plph"></div>') +
-      '<div><div class="pln">' + p.petName + '</div><div class="pls">' + (p.ownerName || '-') + ' · ' + p.ownerPhone + '</div></div>' +
-    '</div>';
+
+  if (groups.length === 0) html += '<div class="empty-state">ไม่พบข้อมูล</div>';
+  else groups.forEach(g => {
+    html += '<div class="card">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+        '<div><div style="font-weight:bold; color:#4A3319; font-size:14px;">' + (g.ownerName || 'ไม่ระบุชื่อ') + '</div>' +
+        '<div style="font-size:11px; color:#8A7454;">' + g.phone + ' · แต้ม ' + (g.points || 0) + ' · เข้าพักแล้ว ' + (g.totalStays || 0) + ' ครั้ง</div></div>' +
+      '</div>';
+    g.pets.forEach(p => {
+      html += '<div class="pet-list-item" onclick="openPetDetail(\'' + p.petId + '\')" style="margin-bottom:8px;">' +
+        (p.photoUrl ? '<img src="' + driveImg(p.photoUrl, 200) + '">' : '<div class="plph"></div>') +
+        '<div style="flex:1;"><div class="pln">' + p.petName +
+          (p.possibleDuplicate ? ' <span class="status-pill pill-done" style="font-size:9px;">อาจซ้ำกับตัวอื่น</span>' : '') +
+        '</div><div class="pls">' + (p.breed || 'ยังไม่ระบุสายพันธุ์') + '</div></div>' +
+      '</div>';
+      if (p.possibleDuplicate && g.pets.length > 1) {
+        const otherOptions = g.pets.filter(x => x.petId !== p.petId)
+          .map(x => '<option value="' + x.petId + '">' + x.petName + ' (' + x.petId + ')</option>').join('');
+        html += '<div style="background:#F7E3E3; border-radius:10px; padding:10px; margin:-4px 0 10px 0; font-size:11.5px;">' +
+          '<div style="color:#A34C4C; margin-bottom:6px;">ชื่อซ้ำกับแมวตัวอื่นของเจ้าของเดียวกัน — ถ้าเป็นตัวเดียวกันจริง เลือกรวมประวัติเข้าด้วยกันได้</div>' +
+          '<select id="mergeTarget_' + p.petId + '" style="margin-bottom:8px;"><option value="">-- เลือกแมวที่จะรวมเข้าด้วยกัน --</option>' + otherOptions + '</select>' +
+          '<button class="btn-small btn-ghost" style="margin:0;" onclick="event.stopPropagation(); doMergePets(\'' + p.petId + '\')">รวมประวัติเข้าด้วยกัน</button>' +
+        '</div>';
+      }
+    });
+    html += '</div>';
   });
+
   html += '<button class="btn btn-ghost" onclick="state.petsLoaded=false; loadPets();">รีเฟรชรายชื่อ</button>';
   return html;
+}
+
+async function doMergePets(sourcePetId) {
+  const sel = document.getElementById('mergeTarget_' + sourcePetId);
+  const targetPetId = sel ? sel.value : '';
+  if (!targetPetId) { alert('กรุณาเลือกแมวที่จะรวมเข้าด้วยกันก่อน'); return; }
+  if (!confirm('รวมประวัติทั้งหมดเข้าด้วยกัน? การจองและบันทึกทั้งหมดของแมวตัวที่เลือกไว้ตอนแรกจะย้ายไปรวมกับอีกตัว แล้วรายการซ้ำจะถูกลบ ย้อนกลับไม่ได้')) return;
+  const res = await api('mergePets', { sourcePetId: sourcePetId, targetPetId: targetPetId, pin: state.pin });
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  state.petsLoaded = false;
+  await loadPets();
 }
 
 async function openPetDetail(petId) {

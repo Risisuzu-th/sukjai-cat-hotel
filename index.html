@@ -279,7 +279,7 @@ let state = {
   loading: true, apiError: '', loadError: ''
 };
 
-async function api(action, payload) {
+async function api(action, payload, retrying) {
   if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR') === 0) {
     state.apiError = 'ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL ในไฟล์นี้';
     return { error: state.apiError };
@@ -293,7 +293,16 @@ async function api(action, payload) {
       body: JSON.stringify(Object.assign({ action: action }, payload || {})),
       signal: controller.signal
     });
-    return await res.json();
+    const raw = await res.text();
+    try {
+      return JSON.parse(raw);
+    } catch (parseErr) {
+      // The server occasionally returns an HTML error page instead of JSON (a transient
+      // Google-side hiccup). One silent retry usually succeeds; only surface an error
+      // to the person if the retry also fails.
+      if (!retrying) return await api(action, payload, true);
+      return { error: 'เซิร์ฟเวอร์มีปัญหาชั่วคราว กรุณาลองใหม่อีกครั้งในไม่กี่วินาที' };
+    }
   } catch (err) {
     const msg = err.name === 'AbortError'
       ? 'เซิร์ฟเวอร์ตอบช้าเกินไป กรุณาลองใหม่อีกครั้ง'

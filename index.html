@@ -267,7 +267,7 @@ let state = {
   couponInput: '', couponApplied: null, couponError: '',
   lineUserId: '', linePictureUrl: '', lineDisplayName: '',
   lastBookingCode: null, lastFinalTotal: null,
-  bookings: [], roomStatus: {}, customers: [], roomPhotos: {}, pricing: [],
+  bookings: [], roomStatus: {}, roomPhotos: {}, pricing: [],
   theme: { themeName: 'default', themePrimary: '#7A4A17', themeBg: '#FBF6EC', themeCard: '#F3E4C8', themeBgImage: '' },
   publicConfig: { promptpayId: '', liffId: '', lineConnected: false },
   report: null,
@@ -318,7 +318,6 @@ async function loadAll() {
   if (data && !data.error) {
     state.bookings = data.bookings || [];
     state.roomStatus = data.roomStatus || {};
-    state.customers = data.customers || [];
     state.roomPhotos = data.roomPhotos || {};
     state.pricing = data.pricing || [];
     state.publicConfig = data.publicConfig || { promptpayId: '', liffId: '' };
@@ -490,20 +489,26 @@ function handlePhotoUpload(evt) {
   );
 }
 
-function findCustomerByPhone(phone) {
-  return state.customers.find(c => c.phone === phone);
-}
 function customerBadgeHtml(c) {
   return '<div class="points-badge">🎉 ยินดีต้อนรับกลับ ' + c.ownerName + ' — สะสมแล้ว ' + (c.points || 0) + ' แต้ม</div>';
 }
+let customerLookupTimer = null;
 function updateCustomerBadge() {
-  // Updates only the small badge slot directly — never call render() here, since a
-  // full re-render while this field still has focus would rebuild the input mid-keystroke
-  // and silently break typing in this or the next field.
+  // Looked up on-demand from the server instead of scanning a full customer list
+  // that used to be downloaded on every page load — that list only grows over time
+  // and was a major reason the site got slower and slower.
+  clearTimeout(customerLookupTimer);
   const slot = document.getElementById('customerBadgeSlot');
   if (!slot) return;
-  const c = state.ownerPhone.length >= 9 ? findCustomerByPhone(state.ownerPhone) : null;
-  slot.innerHTML = c ? customerBadgeHtml(c) : '';
+  if (state.ownerPhone.length < 9) { slot.innerHTML = ''; return; }
+  const phoneAtRequest = state.ownerPhone;
+  customerLookupTimer = setTimeout(async () => {
+    const res = await api('lookupCustomer', { phone: phoneAtRequest });
+    if (state.ownerPhone !== phoneAtRequest) return; // phone field changed again while we were waiting
+    const freshSlot = document.getElementById('customerBadgeSlot');
+    if (!freshSlot) return;
+    freshSlot.innerHTML = (res && res.found) ? customerBadgeHtml(res) : '';
+  }, 400);
 }
 
 function renderCustomer() {
@@ -589,7 +594,7 @@ function renderCustomer() {
   }
 
   if (state.room) {
-    const existingCustomer = state.ownerPhone.length >= 9 ? findCustomerByPhone(state.ownerPhone) : null;
+    const existingCustomer = null; // filled in asynchronously by updateCustomerBadge() below, not from a preloaded list
     const roomPhoto = state.roomPhotos[state.room];
     const priceInfo = estimateTotal(state.room, state.zone, state.level, state.checkin, state.checkout);
 
@@ -644,6 +649,7 @@ function renderCustomer() {
 
   html += footerLink() + '</div>';
   el.innerHTML = html;
+  if (state.room) updateCustomerBadge(); // catches phone numbers pre-filled by LINE login, not just manual typing
 }
 
 function footerLink() {

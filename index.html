@@ -333,10 +333,13 @@ async function retryLoad() {
   await loadAll(); render();
 }
 
+let liffInitPromise = null;
+
 async function initLineLogin() {
   if (!state.publicConfig.liffId) return;
+  liffInitPromise = liff.init({ liffId: state.publicConfig.liffId });
   try {
-    await liff.init({ liffId: state.publicConfig.liffId });
+    await liffInitPromise;
     if (liff.isLoggedIn()) {
       const profile = await liff.getProfile();
       state.lineUserId = profile.userId;
@@ -350,12 +353,24 @@ async function initLineLogin() {
       render();
     }
   } catch (err) {
-    console.log('LIFF init skipped:', err.message);
+    console.log('LIFF init failed:', err.message);
   }
 }
-function lineLoginClick() {
+
+async function lineLoginClick() {
   if (!state.publicConfig.liffId) { alert('ยังไม่ได้ตั้งค่า LINE Login (LIFF ID) — ผู้ดูแลระบบต้องตั้งค่าในเมนูตั้งค่าระบบก่อน'); return; }
-  if (typeof liff !== 'undefined' && liff.login) liff.login();
+  const btn = document.getElementById('lineLoginBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังเตรียมระบบ...'; }
+  try {
+    // liff.login() throws its own opaque error dialog if called before init finishes —
+    // waiting here (even if the promise already resolved) closes that race for good.
+    if (liffInitPromise) await liffInitPromise;
+    if (typeof liff !== 'undefined' && liff.login) liff.login();
+    else throw new Error('LIFF SDK ยังโหลดไม่เสร็จ');
+  } catch (err) {
+    alert('เชื่อมต่อ LINE ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หรือรีเฟรชหน้าเว็บ');
+    if (btn) { btn.disabled = false; btn.textContent = 'เข้าสู่ระบบด้วย LINE เพื่อรับสิทธิ์สมาชิก'; }
+  }
 }
 
 function applyTheme(theme) {
@@ -513,7 +528,6 @@ function updateCustomerBadge() {
 
 function renderCustomer() {
   const el = document.getElementById('appRoot');
-  if (state.loading) { el.innerHTML = '<div class="wrap"><div class="loading">กำลังโหลดข้อมูล...</div></div>'; return; }
   if (state.loadError) {
     el.innerHTML = '<div class="wrap"><div class="card" style="text-align:center;">' +
       '<div class="error-text" style="font-size:13px;">' + state.loadError + '</div>' +
@@ -544,7 +558,7 @@ function renderCustomer() {
       '<div><div class="lpn">' + (state.lineDisplayName || 'เชื่อมต่อ LINE แล้ว') + '</div><div class="lps">เข้าสู่ระบบผ่าน LINE</div></div>' +
     '</div>';
   } else if (state.publicConfig.liffId) {
-    html += '<button class="btn line-login-btn" onclick="lineLoginClick()" style="margin-bottom:16px;">เข้าสู่ระบบด้วย LINE เพื่อรับสิทธิ์สมาชิก</button>';
+    html += '<button class="btn line-login-btn" id="lineLoginBtn" onclick="lineLoginClick()" style="margin-bottom:16px;">เข้าสู่ระบบด้วย LINE เพื่อรับสิทธิ์สมาชิก</button>';
   }
 
   html += '<div class="card">' +
@@ -556,6 +570,9 @@ function renderCustomer() {
     '<div id="dateError" class="error-text"></div></div>';
 
   if (state.checkin && state.checkout && state.checkin < state.checkout) {
+    if (state.loading) {
+      html += '<div class="card"><div class="loading" style="padding:16px 0;">กำลังโหลดข้อมูลห้องว่าง...</div></div>';
+    } else {
     html += '<div class="card"><div class="card-title">2. เลือกโซนที่พัก</div><div class="zone-grid">';
     for (const key in ZONES) {
       const z = ZONES[key];
@@ -568,6 +585,7 @@ function renderCustomer() {
         '<div class="zc">ว่าง ' + availCount + '/' + totalRooms + ' ห้อง</div></div>';
     }
     html += '</div></div>';
+    }
   }
 
   if (state.zone) {

@@ -276,7 +276,7 @@ let state = {
   couponForm: { code: '', discountType: 'percent', value: '', expiryDate: '', usageLimit: '', note: '' }, couponFormMsg: '',
   pets: [], petsLoaded: false, selectedPet: null, petSearch: '', petEditMsg: '', newLogType: 'food', newLogText: '',
   coupons: [], couponsLoaded: false,
-  loading: true, apiError: ''
+  loading: true, apiError: '', loadError: ''
 };
 
 async function api(action, payload) {
@@ -284,15 +284,23 @@ async function api(action, payload) {
     state.apiError = 'ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL ในไฟล์นี้';
     return { error: state.apiError };
   }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
   try {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+      body: JSON.stringify(Object.assign({ action: action }, payload || {})),
+      signal: controller.signal
     });
     return await res.json();
   } catch (err) {
-    return { error: 'เชื่อมต่อระบบไม่ได้: ' + err.message };
+    const msg = err.name === 'AbortError'
+      ? 'เซิร์ฟเวอร์ตอบช้าเกินไป กรุณาลองใหม่อีกครั้ง'
+      : 'เชื่อมต่อระบบไม่ได้: ' + err.message;
+    return { error: msg };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -306,8 +314,15 @@ async function loadAll() {
     state.pricing = data.pricing || [];
     state.publicConfig = data.publicConfig || { promptpayId: '', liffId: '' };
     if (data.theme) { state.theme = data.theme; applyTheme(state.theme); }
+    state.loadError = '';
+  } else {
+    state.loadError = (data && data.error) || 'โหลดข้อมูลไม่สำเร็จ';
   }
   state.loading = false;
+}
+async function retryLoad() {
+  state.loading = true; state.loadError = ''; render();
+  await loadAll(); render();
 }
 
 async function initLineLogin() {
@@ -473,6 +488,13 @@ function findCustomerByPhone(phone) {
 function renderCustomer() {
   const el = document.getElementById('appRoot');
   if (state.loading) { el.innerHTML = '<div class="wrap"><div class="loading">กำลังโหลดข้อมูล...</div></div>'; return; }
+  if (state.loadError) {
+    el.innerHTML = '<div class="wrap"><div class="card" style="text-align:center;">' +
+      '<div class="error-text" style="font-size:13px;">' + state.loadError + '</div>' +
+      '<button class="btn btn-primary" style="margin-top:14px;" onclick="retryLoad()">' + PAW_ICON + 'ลองใหม่อีกครั้ง</button>' +
+    '</div></div>';
+    return;
+  }
 
   if (state.step === 5) {
     el.innerHTML = '<div class="wrap">' +
@@ -734,6 +756,13 @@ function renderStaffLogin() {
 function renderStaff() {
   const el = document.getElementById('appRoot');
   if (state.loading) { el.innerHTML = '<div class="wrap"><div class="loading">กำลังโหลดข้อมูล...</div></div>'; return; }
+  if (state.loadError) {
+    el.innerHTML = '<div class="wrap"><div class="card" style="text-align:center;">' +
+      '<div class="error-text" style="font-size:13px;">' + state.loadError + '</div>' +
+      '<button class="btn btn-primary" style="margin-top:14px;" onclick="retryLoad()">' + PAW_ICON + 'ลองใหม่อีกครั้ง</button>' +
+    '</div></div>';
+    return;
+  }
   let html = '<div class="wrap">';
   html += '<div class="staff-tabs">' +
     '<div class="staff-tab-btn ' + (state.staffTab==='bookings'?'active':'') + '" onclick="setStaffTab(\'bookings\')">การจอง</div>' +

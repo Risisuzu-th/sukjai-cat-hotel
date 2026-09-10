@@ -175,7 +175,8 @@
   .upload-error { color:#B7523F; font-size:11.5px; margin-top:8px; line-height:1.6; }
   .upload-hint { font-size:10.5px; color:#A08A5F; margin-top:6px; }
 
-  .line-login-btn { background:#06C755; color:#fff; }
+  .line-login-btn { background:#06C755; color:#fff; animation: fadeIn .35s ease-out; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform: translateY(0); } }
   .line-profile-badge { display:flex; align-items:center; gap:10px; background:#EAFBEF; border-radius:12px; padding:10px 12px; margin-bottom:12px; }
   .line-profile-badge img { width:32px; height:32px; border-radius:50%; }
   .line-profile-badge .lpn { font-size:12.5px; font-weight:bold; color:#2E7D46; }
@@ -1513,9 +1514,28 @@ function render() {
   else if (state.view === 'staff') renderStaff();
 }
 
+const SITE_CACHE_KEY = 'sukjaiCatHotel_siteConfigCache';
+
+function loadCachedSiteConfig() {
+  try {
+    const raw = localStorage.getItem(SITE_CACHE_KEY);
+    if (!raw) return;
+    const cached = JSON.parse(raw);
+    if (cached.theme) { state.theme = cached.theme; applyTheme(cached.theme); }
+    if (cached.publicConfig) state.publicConfig = cached.publicConfig;
+  } catch (err) { /* ignore a corrupted or missing cache */ }
+}
+function saveCachedSiteConfig() {
+  try {
+    localStorage.setItem(SITE_CACHE_KEY, JSON.stringify({ theme: state.theme, publicConfig: state.publicConfig }));
+  } catch (err) { /* private browsing or storage disabled — non-critical, just skip caching */ }
+}
+
 (async function init() {
+  loadCachedSiteConfig(); // show last-known branding & LINE button instantly — no flash for returning visitors
   render();
   await loadAll();
+  saveCachedSiteConfig();
   render();
   initLineLogin();
 })();

@@ -335,12 +335,23 @@ async function retryLoad() {
 }
 
 let liffInitPromise = null;
+let liffReady = false;
+
+function ensureLiffInit() {
+  // Retries fresh each time if a previous attempt failed, instead of forever
+  // reusing one rejected promise (which would permanently break the button
+  // for the rest of the session after a single transient network hiccup).
+  if (liffReady) return Promise.resolve();
+  liffInitPromise = liff.init({ liffId: state.publicConfig.liffId })
+    .then(() => { liffReady = true; })
+    .catch((err) => { liffReady = false; throw err; });
+  return liffInitPromise;
+}
 
 async function initLineLogin() {
   if (!state.publicConfig.liffId) return;
-  liffInitPromise = liff.init({ liffId: state.publicConfig.liffId });
   try {
-    await liffInitPromise;
+    await ensureLiffInit();
     if (liff.isLoggedIn()) {
       const profile = await liff.getProfile();
       state.lineUserId = profile.userId;
@@ -363,13 +374,12 @@ async function lineLoginClick() {
   const btn = document.getElementById('lineLoginBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'กำลังเตรียมระบบ...'; }
   try {
-    // liff.login() throws its own opaque error dialog if called before init finishes —
-    // waiting here (even if the promise already resolved) closes that race for good.
-    if (liffInitPromise) await liffInitPromise;
+    await ensureLiffInit();
     if (typeof liff !== 'undefined' && liff.login) liff.login();
     else throw new Error('LIFF SDK ยังโหลดไม่เสร็จ');
   } catch (err) {
-    alert('เชื่อมต่อ LINE ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หรือรีเฟรชหน้าเว็บ');
+    const detail = (err && (err.code || err.message)) ? (err.code || '') + ' ' + (err.message || '') : 'ไม่ทราบสาเหตุ';
+    alert('เชื่อมต่อ LINE ไม่สำเร็จ\nรายละเอียด: ' + detail.trim() + '\n\nกรุณาลองใหม่ หรือแจ้งข้อความนี้ให้ผู้ดูแลระบบ');
     if (btn) { btn.disabled = false; btn.textContent = 'เข้าสู่ระบบด้วย LINE เพื่อรับสิทธิ์สมาชิก'; }
   }
 }

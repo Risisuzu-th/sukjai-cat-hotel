@@ -484,6 +484,18 @@ function handlePhotoUpload(evt) {
 function findCustomerByPhone(phone) {
   return state.customers.find(c => c.phone === phone);
 }
+function customerBadgeHtml(c) {
+  return '<div class="points-badge">🎉 ยินดีต้อนรับกลับ ' + c.ownerName + ' — สะสมแล้ว ' + (c.points || 0) + ' แต้ม</div>';
+}
+function updateCustomerBadge() {
+  // Updates only the small badge slot directly — never call render() here, since a
+  // full re-render while this field still has focus would rebuild the input mid-keystroke
+  // and silently break typing in this or the next field.
+  const slot = document.getElementById('customerBadgeSlot');
+  if (!slot) return;
+  const c = state.ownerPhone.length >= 9 ? findCustomerByPhone(state.ownerPhone) : null;
+  slot.innerHTML = c ? customerBadgeHtml(c) : '';
+}
 
 function renderCustomer() {
   const el = document.getElementById('appRoot');
@@ -499,11 +511,12 @@ function renderCustomer() {
   if (state.step === 5) {
     el.innerHTML = '<div class="wrap">' +
       '<div class="card confirm-box">' +
-        '<div class="ci">✅</div>' +
-        '<div class="ct">จองสำเร็จ</div>' +
-        '<div class="cs">' + ZONES[state.zone].name + ' · ห้อง ' + state.room + '<br>' + state.checkin + ' ถึง ' + state.checkout + '</div>' +
+        '<div class="ci">📩</div>' +
+        '<div class="ct">ได้รับข้อมูลการจองแล้ว</div>' +
+        '<div class="cs" style="color:var(--primary); font-weight:bold;">เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันอีกครั้งเร็วๆ นี้</div>' +
+        '<div class="cs" style="margin-top:10px;">' + ZONES[state.zone].name + ' · ห้อง ' + state.room + '<br>' + state.checkin + ' ถึง ' + state.checkout + '</div>' +
         '<div class="code">' + state.lastBookingCode + '</div>' +
-        (state.lastFinalTotal ? '<div class="qr-box"><div id="qrContainer"></div><div class="qt">สแกนจ่ายผ่าน PromptPay</div><div class="qa">' + Number(state.lastFinalTotal).toLocaleString() + ' บาท</div></div>' : '') +
+        (state.lastFinalTotal ? '<div class="qr-box"><div id="qrContainer"></div><div class="qt">สแกนจ่ายผ่าน PromptPay เมื่อเจ้าหน้าที่ยืนยันแล้ว</div><div class="qa">' + Number(state.lastFinalTotal).toLocaleString() + ' บาท</div></div>' : '') +
         '<button class="btn btn-primary" style="margin-top:20px;" onclick="resetBookingForm(); render();">' + PAW_ICON + 'จองห้องใหม่</button>' +
       '</div>' + footerLink() + '</div>';
     return;
@@ -577,8 +590,8 @@ function renderCustomer() {
       '<label>ชื่อเจ้าของ</label>' +
       '<input type="text" id="inOwner" placeholder="เช่น คุณมิ้น" value="' + state.ownerName + '" oninput="state.ownerName=this.value">' +
       '<label>เบอร์โทร</label>' +
-      '<input type="tel" id="inPhone" placeholder="08X-XXX-XXXX" value="' + state.ownerPhone + '" oninput="state.ownerPhone=this.value" onblur="render()">' +
-      (existingCustomer ? '<div class="points-badge">🎉 ยินดีต้อนรับกลับ ' + existingCustomer.ownerName + ' — สะสมแล้ว ' + (existingCustomer.points || 0) + ' แต้ม</div>' : '') +
+      '<input type="tel" id="inPhone" placeholder="08X-XXX-XXXX" value="' + state.ownerPhone + '" oninput="state.ownerPhone=this.value; updateCustomerBadge();">' +
+      '<div id="customerBadgeSlot">' + (existingCustomer ? customerBadgeHtml(existingCustomer) : '') + '</div>' +
       '<label>ชื่อแมว</label>' +
       '<input type="text" id="inPet" placeholder="เช่น น้องส้ม" value="' + state.petName + '" oninput="state.petName=this.value">' +
       '<label>รูปน้องแมว (ถ้ามี — เก็บไว้เป็นประวัติใน Google Drive)</label>' +
@@ -682,9 +695,9 @@ async function submitBooking() {
     state.lastBookingCode = res.id;
     state.lastFinalTotal = res.finalTotal;
     state.step = 5;
-    await loadAll();
     render();
     renderPaymentQR();
+    loadAll(); // refresh room availability etc. in the background; confirmation is already shown
   } else {
     errEl.textContent = (res && res.error) || 'เกิดข้อผิดพลาด กรุณาลองใหม่';
     btn.disabled = false; btn.innerHTML = PAW_ICON + 'ยืนยันการจอง';

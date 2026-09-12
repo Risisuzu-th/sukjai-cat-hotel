@@ -492,7 +492,7 @@ function resizeImageFile(file, maxDim, quality, onSuccess, onError) {
     return;
   }
   if (file.size > MAX_ORIGINAL_FILE_BYTES) {
-    onError('ไฟล์รูปใหญ่เกินไป (' + (file.size/1024/1024).toFixed(1) + 'MB) กรุณาเลือกไฟล์ไม่เกิน 12MB');
+    onError('ไฟล์รูปใหญ่เกินไป (' + (file.size/1024/1024).toFixed(1) + 'MB) กรุณาเลือกไฟล์ไม่เกิน 25MB');
     return;
   }
   const reader = new FileReader();

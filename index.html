@@ -285,7 +285,7 @@ let state = {
   zone: null, level: null, room: null,
   ownerName: '', ownerPhone: '', petName: '', petPhoto: null, petPhotoError: '', referralCodeUsed: '',
   couponInput: '', couponApplied: null, couponError: '',
-  liffAvailable: false, lineUserId: '', linePictureUrl: '', lineDisplayName: '',
+  liffAvailable: 'checking', lineUserId: '', linePictureUrl: '', lineDisplayName: '',
   lastBookingCode: null, lastFinalTotal: null,
   bookings: [], roomStatus: {}, roomPhotos: {}, pricing: [],
   theme: { themeName: 'default', themePrimary: '#7A4A17', themeBg: '#FBF6EC', themeCard: '#F3E4C8', themeBgImage: '' },
@@ -374,7 +374,7 @@ function ensureLiffInit() {
 }
 
 async function initLineLogin() {
-  if (!state.publicConfig.liffId) return;
+  if (!state.publicConfig.liffId) { state.liffAvailable = false; return; }
   try {
     await ensureLiffInit();
     // Only reveal the button once init has actually succeeded — showing it earlier
@@ -602,8 +602,10 @@ function renderCustomer() {
       (state.linePictureUrl ? '<img src="' + state.linePictureUrl + '">' : '') +
       '<div><div class="lpn">' + (state.lineDisplayName || 'เชื่อมต่อ LINE แล้ว') + '</div><div class="lps">เข้าสู่ระบบผ่าน LINE</div></div>' +
     '</div>';
-  } else if (state.liffAvailable) {
+  } else if (state.liffAvailable === true) {
     html += '<button class="btn line-login-btn" id="lineLoginBtn" onclick="lineLoginClick()" style="margin-bottom:16px;">เข้าสู่ระบบด้วย LINE เพื่อรับสิทธิ์สมาชิก</button>';
+  } else if (state.liffAvailable === 'checking' && state.publicConfig.liffId) {
+    html += '<div style="text-align:center; font-size:11.5px; color:#A08A5F; margin-bottom:16px;">กำลังตรวจสอบการเชื่อมต่อ LINE...</div>';
   }
 
   html += '<div class="card">' +

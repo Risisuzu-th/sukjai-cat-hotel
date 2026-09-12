@@ -266,13 +266,13 @@ let state = {
   zone: null, level: null, room: null,
   ownerName: '', ownerPhone: '', petName: '', petPhoto: null, petPhotoError: '', referralCodeUsed: '',
   couponInput: '', couponApplied: null, couponError: '',
-  lineUserId: '', linePictureUrl: '', lineDisplayName: '',
+  liffAvailable: false, lineUserId: '', linePictureUrl: '', lineDisplayName: '',
   lastBookingCode: null, lastFinalTotal: null,
   bookings: [], roomStatus: {}, roomPhotos: {}, pricing: [],
   theme: { themeName: 'default', themePrimary: '#7A4A17', themeBg: '#FBF6EC', themeCard: '#F3E4C8', themeBgImage: '' },
   publicConfig: { promptpayId: '', liffId: '', lineConnected: false },
   report: null,
-  settingsMsg: '', pricingMsg: '', themeMsg: '', bgMsg: '', coverMsg: '', paymentMsg: '', liffMsg: '', lineTokenMsg: '', broadcastMsg: '', broadcastText: '',
+  settingsMsg: '', pricingMsg: '', themeMsg: '', bgMsg: '', coverMsg: '', paymentMsg: '', liffMsg: '', liffDiagResult: '', lineTokenMsg: '', broadcastMsg: '', broadcastText: '',
   pricingForm: { targetType: 'zone', targetValue: 'sunny', startDate: '', endDate: '', pricePerNight: '', note: '' },
   couponForm: { code: '', discountType: 'percent', value: '', expiryDate: '', usageLimit: '', note: '' }, couponFormMsg: '',
   customerPets: [], petsLoaded: false, selectedPet: null, petSearch: '', petEditMsg: '', newLogType: 'food', newLogText: '',
@@ -352,6 +352,11 @@ async function initLineLogin() {
   if (!state.publicConfig.liffId) return;
   try {
     await ensureLiffInit();
+    // Only reveal the button once init has actually succeeded — showing it earlier
+    // (optimistically) means it can appear and then fail when tapped, which feels
+    // broken. Silence is better than a button that doesn't work.
+    state.liffAvailable = true;
+    render();
     if (liff.isLoggedIn()) {
       const profile = await liff.getProfile();
       state.lineUserId = profile.userId;
@@ -365,21 +370,25 @@ async function initLineLogin() {
       render();
     }
   } catch (err) {
-    console.log('LIFF init failed:', err.message);
+    // Init genuinely failed this session (common in a regular mobile browser rather
+    // than LINE's own in-app browser, where LIFF is most reliable). Don't show a
+    // button that won't work — customers can still book normally without LINE.
+    state.liffAvailable = false;
+    console.log('LIFF unavailable this session:', err.message);
   }
 }
 
 async function lineLoginClick() {
-  if (!state.publicConfig.liffId) { alert('ยังไม่ได้ตั้งค่า LINE Login (LIFF ID) — ผู้ดูแลระบบต้องตั้งค่าในเมนูตั้งค่าระบบก่อน'); return; }
+  if (!state.liffAvailable) return; // button shouldn't be clickable if this fires, but guard anyway
   const btn = document.getElementById('lineLoginBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'กำลังเตรียมระบบ...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังเชื่อมต่อ...'; }
   try {
-    await ensureLiffInit();
     if (typeof liff !== 'undefined' && liff.login) liff.login();
     else throw new Error('LIFF SDK ยังโหลดไม่เสร็จ');
   } catch (err) {
-    const detail = (err && (err.code || err.message)) ? (err.code || '') + ' ' + (err.message || '') : 'ไม่ทราบสาเหตุ';
-    alert('เชื่อมต่อ LINE ไม่สำเร็จ\nรายละเอียด: ' + detail.trim() + '\n\nกรุณาลองใหม่ หรือแจ้งข้อความนี้ให้ผู้ดูแลระบบ');
+    // Init already succeeded by the time this button is visible, so this is a rare
+    // edge case (e.g. session expired mid-visit) rather than the common path.
+    alert('เชื่อมต่อ LINE ไม่สำเร็จ กรุณาลองใหม่ หรือจองต่อได้เลยโดยไม่ต้องเชื่อมต่อ LINE');
     if (btn) { btn.disabled = false; btn.textContent = 'เข้าสู่ระบบด้วย LINE เพื่อรับสิทธิ์สมาชิก'; }
   }
 }
@@ -568,7 +577,7 @@ function renderCustomer() {
       (state.linePictureUrl ? '<img src="' + state.linePictureUrl + '">' : '') +
       '<div><div class="lpn">' + (state.lineDisplayName || 'เชื่อมต่อ LINE แล้ว') + '</div><div class="lps">เข้าสู่ระบบผ่าน LINE</div></div>' +
     '</div>';
-  } else if (state.publicConfig.liffId) {
+  } else if (state.liffAvailable) {
     html += '<button class="btn line-login-btn" id="lineLoginBtn" onclick="lineLoginClick()" style="margin-bottom:16px;">เข้าสู่ระบบด้วย LINE เพื่อรับสิทธิ์สมาชิก</button>';
   }
 
@@ -1176,7 +1185,10 @@ function staffSettingsHtml() {
     '<div style="font-size:11px; color:#4C8A4C; margin-top:8px;">' + state.liffMsg + '</div>' +
     '<div style="font-size:11px; color:#A08A5F; margin-top:10px; line-height:1.6;">' +
       'เนื่องจากมี LINE OA อยู่แล้ว ใช้ Messaging API channel เดิมได้เลย — ใน LINE Developers Console เปิด channel ของ OA นี้ → แท็บ LIFF → Add → ตั้ง Endpoint URL เป็นลิงก์เว็บนี้บน GitHub Pages → คัดลอก LIFF ID มาใส่ที่นี่' +
-    '</div></div>';
+    '</div>' +
+    '<button class="btn btn-ghost" onclick="runLiffDiagnostic()">🔍 ทดสอบการเชื่อมต่อตอนนี้เลย</button>' +
+    '<div id="liffDiagResult">' + (state.liffDiagResult || '') + '</div>' +
+  '</div>';
 
   html += '<div class="card">' +
     '<div class="card-title">เชื่อมต่อ LINE Messaging API (ส่งข้อความแจ้งเตือน)</div>' +
@@ -1214,6 +1226,47 @@ async function saveLiffId() {
   if (res && res.ok) { state.publicConfig.liffId = val; state.liffMsg = 'บันทึกเรียบร้อย — รีเฟรชหน้าเว็บเพื่อเริ่มใช้งาน LINE Login'; }
   else { state.liffMsg = ''; alert((res && res.error) || 'เกิดข้อผิดพลาด'); }
   render();
+}
+
+async function runLiffDiagnostic() {
+  const resultEl = document.getElementById('liffDiagResult');
+  const liffId = document.getElementById('inLiffId').value.trim() || state.publicConfig.liffId;
+  const lines = [];
+  lines.push('LIFF ID ที่ทดสอบ: ' + (liffId || '(ว่าง — ยังไม่ได้กรอก)'));
+  lines.push('URL หน้านี้ตอนนี้: ' + window.location.href);
+  if (resultEl) resultEl.innerHTML = '<div class="loading" style="padding:10px 0;">กำลังทดสอบ...</div>';
+
+  if (!liffId) {
+    lines.push('❌ ผลลัพธ์: ไม่มี LIFF ID ให้ทดสอบ — กรอกแล้วกดบันทึกก่อน');
+    if (resultEl) resultEl.innerHTML = diagResultHtml(lines, false);
+    return;
+  }
+  if (typeof liff === 'undefined') {
+    lines.push('❌ ผลลัพธ์: LIFF SDK ยังไม่โหลด (เช็คอินเทอร์เน็ต หรือลองรีเฟรชหน้านี้)');
+    if (resultEl) resultEl.innerHTML = diagResultHtml(lines, false);
+    return;
+  }
+
+  try {
+    await liff.init({ liffId: liffId });
+    lines.push('✅ liff.init() สำเร็จ');
+    try {
+      lines.push('เปิดจากใน LINE app หรือไม่: ' + (liff.isInClient() ? 'ใช่ (ในแอป LINE)' : 'ไม่ใช่ (เบราว์เซอร์ภายนอก — เชื่อมต่อได้ แต่ความเสถียรขึ้นกับตัวเบราว์เซอร์)'));
+    } catch (e2) { /* isInClient not critical, skip silently if unsupported */ }
+    lines.push('สถานะล็อกอิน: ' + (liff.isLoggedIn() ? 'ล็อกอินอยู่แล้ว' : 'ยังไม่ได้ล็อกอิน (ปกติสำหรับการเปิดครั้งแรก)'));
+    lines.push('✅ สรุป: การเชื่อมต่อ LIFF ใช้งานได้ปกติจากตรงนี้');
+    if (resultEl) resultEl.innerHTML = diagResultHtml(lines, true);
+  } catch (err) {
+    lines.push('❌ liff.init() ล้มเหลว');
+    lines.push('รายละเอียด: ' + ((err && (err.code || '')) + ' ' + (err && err.message || '')).trim());
+    lines.push('');
+    lines.push('สาเหตุที่เป็นไปได้มากที่สุด: Endpoint URL ที่ตั้งไว้ใน LINE Developers Console (แท็บ LIFF ของ channel) ไม่ตรงกับ URL หน้านี้เป๊ะๆ ทุกตัวอักษร (รวม https:// และ / ท้ายลิงก์) — เข้าไปเทียบดูอีกครั้ง');
+    if (resultEl) resultEl.innerHTML = diagResultHtml(lines, false);
+  }
+}
+
+function diagResultHtml(lines, success) {
+  return '<div style="background:' + (success ? '#E0F0E0' : '#F7E3E3') + '; border-radius:10px; padding:12px; margin-top:10px; font-size:11.5px; color:' + (success ? '#3B7A3B' : '#A34C4C') + '; line-height:1.7; white-space:pre-wrap; word-break:break-all;">' + lines.join('\n') + '</div>';
 }
 
 async function saveSettingsPins() {

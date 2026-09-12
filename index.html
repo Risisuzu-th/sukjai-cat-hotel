@@ -373,17 +373,26 @@ function ensureLiffInit() {
   return liffInitPromise;
 }
 
+function timeoutAfter(ms, message) {
+  return new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms));
+}
+
 async function initLineLogin() {
   if (!state.publicConfig.liffId) { state.liffAvailable = false; return; }
   try {
-    await ensureLiffInit();
+    // liff.init() can get stuck waiting on a native browser/LINE account-chooser
+    // dialog that the SDK triggers on its own (outside our control) when it finds
+    // an existing session to confirm. If the person doesn't interact with that
+    // dialog quickly, our check must not hang forever — race it against a timeout
+    // so the page always reaches a definite state either way.
+    await Promise.race([ensureLiffInit(), timeoutAfter(8000, 'LIFF init timed out')]);
     // Only reveal the button once init has actually succeeded — showing it earlier
     // (optimistically) means it can appear and then fail when tapped, which feels
     // broken. Silence is better than a button that doesn't work.
     state.liffAvailable = true;
     render();
     if (liff.isLoggedIn()) {
-      const profile = await liff.getProfile();
+      const profile = await Promise.race([liff.getProfile(), timeoutAfter(8000, 'getProfile timed out')]);
       state.lineUserId = profile.userId;
       state.lineDisplayName = profile.displayName;
       state.linePictureUrl = profile.pictureUrl || '';
@@ -395,10 +404,12 @@ async function initLineLogin() {
       render();
     }
   } catch (err) {
-    // Init genuinely failed this session (common in a regular mobile browser rather
-    // than LINE's own in-app browser, where LIFF is most reliable). Don't show a
-    // button that won't work — customers can still book normally without LINE.
+    // Init genuinely failed or timed out this session (common in a regular mobile
+    // browser rather than LINE's own in-app browser, where LIFF is most reliable).
+    // Don't show a button/checking-message that never resolves — customers can
+    // still book normally without LINE.
     state.liffAvailable = false;
+    render();
     console.log('LIFF unavailable this session:', err.message);
   }
 }

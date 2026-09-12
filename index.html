@@ -285,8 +285,9 @@ async function api(action, payload, retrying) {
     state.apiError = 'ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL ในไฟล์นี้';
     return { error: state.apiError };
   }
+  const timeoutMs = retrying ? 35000 : 25000; // give the retry a bit more room, in case it's just a slow cold start
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
@@ -305,6 +306,11 @@ async function api(action, payload, retrying) {
       return { error: 'เซิร์ฟเวอร์มีปัญหาชั่วคราว กรุณาลองใหม่อีกครั้งในไม่กี่วินาที' };
     }
   } catch (err) {
+    if (err.name === 'AbortError' && !retrying) {
+      // A single slow response (often a one-time cold start) shouldn't strand the
+      // customer — try once more automatically before showing anything.
+      return await api(action, payload, true);
+    }
     const msg = err.name === 'AbortError'
       ? 'เซิร์ฟเวอร์ตอบช้าเกินไป กรุณาลองใหม่อีกครั้ง'
       : 'เชื่อมต่อระบบไม่ได้: ' + err.message;

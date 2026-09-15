@@ -993,8 +993,8 @@ function bookingItemHtml(b) {
   let actions = '';
   if (b.status === 'active') {
     actions = '<div class="bi-actions">' +
-      '<button onclick="checkoutBooking(\'' + b.id + '\')">เช็คเอาท์</button>' +
-      '<button class="danger" onclick="cancelBooking(\'' + b.id + '\')">ยกเลิกการจอง</button>' +
+      '<button id="checkoutBtn_' + b.id + '" onclick="checkoutBooking(\'' + b.id + '\')">เช็คเอาท์</button>' +
+      '<button id="cancelBtn_' + b.id + '" class="danger" onclick="cancelBooking(\'' + b.id + '\')">ยกเลิกการจอง</button>' +
     '</div>';
   }
   const photo = b.petPhotoUrl ? '<img class="bi-photo" src="' + driveImg(b.petPhotoUrl, 300) + '">' : '<div class="bi-photo"></div>';
@@ -1005,14 +1005,26 @@ function bookingItemHtml(b) {
   '</div></div>';
 }
 
+function setBtnBusy(id, busyText) {
+  const btn = document.getElementById(id);
+  if (!btn) return null;
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.textContent = busyText;
+  return original;
+}
+
 async function checkoutBooking(id) {
+  setBtnBusy('checkoutBtn_' + id, 'กำลังบันทึก...');
   const res = await api('checkout', { id: id, pin: state.pin });
-  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); render(); return; }
   await loadAll(); render();
 }
 async function cancelBooking(id) {
+  setBtnBusy('cancelBtn_' + id, 'กำลังยกเลิก...');
   const res = await api('cancel', { id: id, pin: state.pin });
-  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); render(); return; }
   await loadAll(); render();
 }
 async function manualRefresh() { state.loading = true; render(); await loadAll(); render(); }
@@ -1035,7 +1047,7 @@ function staffRoomsHtml() {
           '</div>' +
           '<div class="room-row-right">' +
             '<span class="status-pill ' + (closed?'pill-done':'pill-active') + '">' + (closed?'ปิดปรับปรุง':'เปิดใช้งาน') + '</span>' +
-            '<button class="btn-small btn-ghost" style="margin:0;" onclick="toggleRoomClosed(\'' + r + '\')">' + (closed?'เปิดใช้งาน':'ปิดปรับปรุง') + '</button>' +
+            '<button class="btn-small btn-ghost" id="toggleBtn_' + r + '" style="margin:0;" onclick="toggleRoomClosed(\'' + r + '\')">' + (closed?'เปิดใช้งาน':'ปิดปรับปรุง') + '</button>' +
             '<label class="upload-btn-label">อัปโหลดรูป<input type="file" accept="image/*" onchange="handleRoomPhotoUpload(event,\'' + r + '\')"></label>' +
           '</div></div>';
       }
@@ -1049,8 +1061,9 @@ async function toggleRoomClosed(roomId) {
   const currentlyClosed = isRoomClosed(roomId);
   let note = '';
   if (!currentlyClosed) note = prompt('เหตุผลที่ปิดปรับปรุงห้อง ' + roomId + ' (ไม่บังคับ):', '') || 'ปิดปรับปรุง';
+  setBtnBusy('toggleBtn_' + roomId, 'กำลังบันทึก...');
   const res = await api('setRoomStatus', { roomId: roomId, closed: !currentlyClosed, note: note, pin: state.pin });
-  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); return; }
+  if (!res || !res.ok) { alert((res && res.error) || 'เกิดข้อผิดพลาด'); render(); return; }
   await loadAll(); render();
 }
 
